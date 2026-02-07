@@ -10,6 +10,7 @@ function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("peerstack_token");
+
     if (!token) {
       navigate("/login", { replace: true });
       return;
