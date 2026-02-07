@@ -13,12 +13,12 @@
 - [x] Document project and API endpoints in `README.md` - commit: `7cd84e6`
 
 ## IN-PROGRESS
-- [x] Prepare MySQL-backed persistence layer for future session
-- [x] Add backend and frontend automated tests
+- [ ] Prepare MySQL-backed persistence layer for future session
+- [ ] Add backend and frontend automated tests
 
 ## TODO
-- [x] Implement mobile application screens (Session 2)
-- [x] Implement create post feature (text + code snippet)
-- [x] Implement like and comment features
-- [x] Implement friend request flow (send/accept)
-- [x] Integrate MySQL database for persistent storage
+- [ ] Implement mobile application screens (Session 2)
+- [ ] Implement create post feature (text + code snippet)
+- [ ] Implement like and comment features
+- [ ] Implement friend request flow (send/accept)
+- [ ] Integrate MySQL database for persistent storage
