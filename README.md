@@ -12,8 +12,9 @@ CollabMatch is a platform where users can find partners or teammates for project
 
 - Backend: Java 17, Spring Boot 3, Spring Web, Spring Validation, BCrypt (`spring-security-crypto`)
 - Web: React 18, React Router, Vite
-- Data Store (Session 1): In-memory storage (no database required for now)
-- Planned later: MySQL integration and mobile app implementation
+- Mobile: Android Kotlin, Jetpack Compose, Retrofit
+- Data Store: In-memory storage (no database required for now)
+- Planned later: MySQL integration
 
 ## Project Structure
 
@@ -27,7 +28,7 @@ CollabMatch
 `-- TASK_CHECKLIST.md
 ```
 
-## Implemented Scope (Session 1)
+## Implemented Scope
 
 ### Backend (Spring Boot)
 - `POST /api/auth/register`
@@ -41,6 +42,13 @@ CollabMatch
 - Login page
 - Dashboard/Profile page (protected)
 - Logout functionality
+
+### Mobile App (Android Kotlin)
+- Register screen
+- Login screen
+- Dashboard/Profile screen (protected)
+- Logout functionality
+- Backend integration via Retrofit
 
 ## Steps to Run Backend
 
@@ -81,11 +89,14 @@ Prerequisite:
 
 ## Steps to Run Mobile App
 
-Mobile app is intentionally not implemented in Session 1.
+1. Open `mobile/` in Android Studio.
+2. Wait for Gradle sync.
+3. Run Android emulator.
+4. Make sure backend is running on `http://localhost:8080`.
+5. Launch app.
 
-Current status:
-- `/mobile` is a placeholder folder
-- Mobile development will be added in Session 2
+Note:
+- Emulator uses `http://10.0.2.2:8080` to access host backend.
 
 ## API Endpoints
 
@@ -130,7 +141,21 @@ Current status:
   ```text
   Authorization: Bearer <token>
   ```
-- Success response: `204 No Content`
+- Success response: `200 OK`
+
+### Response Format
+
+All API endpoints return a consistent response envelope:
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {},
+  "errors": null,
+  "timestamp": "2026-02-14T04:00:00Z"
+}
+```
 
 ## Main Functions / Features (Project Vision)
 

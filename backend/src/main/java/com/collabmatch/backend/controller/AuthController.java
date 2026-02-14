@@ -1,6 +1,7 @@
 package com.collabmatch.backend.controller;
 
 import com.collabmatch.backend.dto.AuthResponse;
+import com.collabmatch.backend.dto.ApiResponse;
 import com.collabmatch.backend.dto.LoginRequest;
 import com.collabmatch.backend.dto.RegisterRequest;
 import com.collabmatch.backend.service.AuthService;
@@ -23,20 +24,19 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Registration successful", authService.register(request)));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Login successful", authService.login(request)));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader(name = "Authorization", required = false) String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            authService.logout(authorizationHeader.substring(7));
-        }
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        authService.logout(authorizationHeader.substring(7));
+        return ResponseEntity.ok(ApiResponse.success("Logout successful"));
     }
 }

@@ -1,5 +1,6 @@
 package com.collabmatch.backend.config;
 
+import com.collabmatch.backend.exception.UnauthorizedException;
 import com.collabmatch.backend.model.User;
 import com.collabmatch.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,15 +20,13 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String authorizationHeader = request.getHeader("Authorization");
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
-            return false;
+            throw new UnauthorizedException("Missing or invalid Authorization header");
         }
 
         String token = authorizationHeader.substring(7);
         User user = authService.getUserByToken(token).orElse(null);
         if (user == null) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-            return false;
+            throw new UnauthorizedException("Invalid token");
         }
 
         request.setAttribute("currentUser", user);

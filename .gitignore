@@ -2,6 +2,9 @@
 backend/target/
 web/node_modules/
 web/dist/
+mobile/.gradle/
+mobile/build/
+mobile/app/build/
 
 # Editor / OS
 .vscode/

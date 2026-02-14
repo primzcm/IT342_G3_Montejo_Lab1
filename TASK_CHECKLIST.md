@@ -11,13 +11,19 @@
 - [x] Build protected React Dashboard/Profile page - commit: `7cd84e6`
 - [x] Implement Logout functionality in web app - commit: `7cd84e6`
 - [x] Document project and API endpoints in `README.md` - commit: `7cd84e6`
+- [x] Build Android Kotlin Register screen
+- [x] Build Android Kotlin Login screen
+- [x] Build Android Kotlin protected Dashboard/Profile screen
+- [x] Implement Logout functionality in Android app
+- [x] Connect Android app to Spring Boot backend
+- [x] Standardize backend API response envelope (`success`, `message`, `data`, `errors`, `timestamp`)
+- [x] Improve backend validation/error handling and protected logout behavior
 
 ## IN-PROGRESS
 - [ ] Prepare MySQL-backed persistence layer for future session
-- [ ] Add backend and frontend automated tests
+- [ ] Add backend, web, and mobile automated tests
 
 ## TODO
-- [ ] Implement mobile application screens (Session 2)
 - [ ] Implement collaboration opportunity posting feature
 - [ ] Implement skill and interest matching for teammate discovery
 - [ ] Implement team join/request flow

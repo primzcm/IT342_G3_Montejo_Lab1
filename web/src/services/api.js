@@ -21,12 +21,19 @@ async function apiRequest(path, { method = "GET", body, token } = {}) {
     : null;
 
   if (!response.ok) {
+    const validationError =
+      payload?.errors && Object.keys(payload.errors).length > 0
+        ? Object.values(payload.errors)[0]
+        : null;
     const errorMessage =
-      payload?.error || payload?.message || "Request failed. Please try again.";
+      validationError ||
+      payload?.message ||
+      payload?.error ||
+      "Request failed. Please try again.";
     throw new Error(errorMessage);
   }
 
-  return payload;
+  return payload?.data ?? null;
 }
 
 export function registerUser(data) {

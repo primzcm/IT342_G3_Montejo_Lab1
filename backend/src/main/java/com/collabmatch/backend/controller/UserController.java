@@ -1,5 +1,6 @@
 package com.collabmatch.backend.controller;
 
+import com.collabmatch.backend.dto.ApiResponse;
 import com.collabmatch.backend.dto.UserResponse;
 import com.collabmatch.backend.model.User;
 import com.collabmatch.backend.service.AuthService;
@@ -19,8 +20,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> me(HttpServletRequest request) {
         User user = (User) request.getAttribute("currentUser");
-        return ResponseEntity.ok(authService.toUserResponse(user));
+        return ResponseEntity.ok(ApiResponse.success("User fetched successfully", authService.toUserResponse(user)));
     }
 }
