@@ -1,4 +1,4 @@
-package com.peerstack.backend.dto;
+package com.collabmatch.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

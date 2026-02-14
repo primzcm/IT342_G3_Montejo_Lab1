@@ -1,17 +1,19 @@
-package com.peerstack.backend.dto;
+package com.collabmatch.backend.model;
 
 import java.time.Instant;
 
-public class UserResponse {
+public class User {
     private final String id;
     private final String username;
     private final String email;
+    private final String passwordHash;
     private final Instant createdAt;
 
-    public UserResponse(String id, String username, String email, Instant createdAt) {
+    public User(String id, String username, String email, String passwordHash, Instant createdAt) {
         this.id = id;
         this.username = username;
         this.email = email;
+        this.passwordHash = passwordHash;
         this.createdAt = createdAt;
     }
 
@@ -25,6 +27,10 @@ public class UserResponse {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
     public Instant getCreatedAt() {

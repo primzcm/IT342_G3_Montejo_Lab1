@@ -1,7 +1,7 @@
-package com.peerstack.backend.config;
+package com.collabmatch.backend.config;
 
-import com.peerstack.backend.model.User;
-import com.peerstack.backend.service.AuthService;
+import com.collabmatch.backend.model.User;
+import com.collabmatch.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;

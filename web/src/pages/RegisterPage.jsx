@@ -15,7 +15,7 @@ function RegisterPage() {
 
     try {
       const response = await registerUser(form);
-      localStorage.setItem("peerstack_token", response.token);
+      localStorage.setItem("collabmatch_token", response.token);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -27,7 +27,8 @@ function RegisterPage() {
   return (
     <main className="auth-page">
       <section className="card">
-        <h1>Create your PeerStack account</h1>
+        <h1>Create your CollabMatch account</h1>
+        <p>Build your profile and connect with teammates based on skills and interests.</p>
         <form onSubmit={handleSubmit}>
           <label>
             Username

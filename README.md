@@ -1,6 +1,12 @@
-# PeerStack
+﻿# CollabMatch
 
-PeerStack is a social media platform for developers where users can create profiles, share updates, and connect with other programmers. This Session 1 implementation delivers the core registration and authentication flow through a Spring Boot backend and a React web application.
+CollabMatch is a platform where users can find partners or teammates for projects by posting collaboration opportunities and joining teams based on skills and interests. It helps people connect easily and work together on creative or academic projects.
+
+## Target Users
+
+- Students working on group projects
+- Creators (artists, editors, writers, designers)
+- People looking for teammates for events or competitions
 
 ## Technologies Used
 
@@ -12,13 +18,13 @@ PeerStack is a social media platform for developers where users can create profi
 ## Project Structure
 
 ```text
-PeerStack
-├─ /web
-├─ /backend
-├─ /mobile
-├─ /docs
-├─ README.md
-└─ TASK_CHECKLIST.md
+CollabMatch
+|-- /web
+|-- /backend
+|-- /mobile
+|-- /docs
+|-- README.md
+`-- TASK_CHECKLIST.md
 ```
 
 ## Implemented Scope (Session 1)
@@ -28,7 +34,7 @@ PeerStack
 - `POST /api/auth/login`
 - `GET /api/user/me` (protected)
 - Password encryption with BCrypt
-- Token-based authentication using local memory
+- Token-based authentication using in-memory storage
 
 ### Web App (React)
 - Register page
@@ -44,12 +50,15 @@ PeerStack
    ```
 2. Run the app:
    ```bash
-   mvn spring-boot:run
+   mvnw.cmd spring-boot:run
    ```
 3. Backend runs on:
    ```text
    http://localhost:8080
    ```
+
+Prerequisite:
+- `JAVA_HOME` must point to a Java 17 JDK directory.
 
 ## Steps to Run Web App
 
@@ -75,8 +84,8 @@ PeerStack
 Mobile app is intentionally not implemented in Session 1.
 
 Current status:
-- `/mobile` is a placeholder folder.
-- Mobile development will be added in Session 2.
+- `/mobile` is a placeholder folder
+- Mobile development will be added in Session 2
 
 ## API Endpoints
 
@@ -125,11 +134,11 @@ Current status:
 
 ## Main Functions / Features (Project Vision)
 
-- Register, Login, Dashboard, Profile, Logout
-- Create posts (text + optional code snippet)
-- Like and comment on posts
-- Add friends / accept friend requests
-- Transactional function: send and accept friend requests
+- Register, login, dashboard/profile, logout
+- Post collaboration opportunities for projects or events
+- Discover teammates based on skills and interests
+- Join teams and manage collaboration requests
+- Build project groups for creative and academic work
 
 ## Note on MySQL
 

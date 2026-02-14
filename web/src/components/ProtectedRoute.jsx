@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 
 function ProtectedRoute({ children }) {
   const location = useLocation();
-  const token = localStorage.getItem("peerstack_token");
+  const token = localStorage.getItem("collabmatch_token");
 
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />;

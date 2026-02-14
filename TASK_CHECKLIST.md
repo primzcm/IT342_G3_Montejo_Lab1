@@ -1,4 +1,4 @@
-# TASK CHECKLIST
+﻿# TASK CHECKLIST
 
 ## DONE
 - [x] Create required project structure (`backend`, `web`, `mobile`, `docs`) - commit: `7cd84e6`
@@ -18,7 +18,7 @@
 
 ## TODO
 - [ ] Implement mobile application screens (Session 2)
-- [ ] Implement create post feature (text + code snippet)
-- [ ] Implement like and comment features
-- [ ] Implement friend request flow (send/accept)
+- [ ] Implement collaboration opportunity posting feature
+- [ ] Implement skill and interest matching for teammate discovery
+- [ ] Implement team join/request flow
 - [ ] Integrate MySQL database for persistent storage

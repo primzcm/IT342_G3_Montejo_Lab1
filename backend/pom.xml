@@ -10,11 +10,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.peerstack</groupId>
+    <groupId>com.collabmatch</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>peerstack-backend</name>
-    <description>PeerStack backend API</description>
+    <name>collabmatch-backend</name>
+    <description>CollabMatch backend API</description>
 
     <properties>
         <java.version>17</java.version>

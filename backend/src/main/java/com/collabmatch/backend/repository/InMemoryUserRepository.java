@@ -1,6 +1,6 @@
-package com.peerstack.backend.repository;
+package com.collabmatch.backend.repository;
 
-import com.peerstack.backend.model.User;
+import com.collabmatch.backend.model.User;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;

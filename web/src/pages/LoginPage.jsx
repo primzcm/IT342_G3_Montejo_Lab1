@@ -17,7 +17,7 @@ function LoginPage() {
 
     try {
       const response = await loginUser(form);
-      localStorage.setItem("peerstack_token", response.token);
+      localStorage.setItem("collabmatch_token", response.token);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -29,7 +29,8 @@ function LoginPage() {
   return (
     <main className="auth-page">
       <section className="card">
-        <h1>Login to PeerStack</h1>
+        <h1>Login to CollabMatch</h1>
+        <p>Find teammates for creative, academic, and event-based projects.</p>
         <form onSubmit={handleSubmit}>
           <label>
             Username

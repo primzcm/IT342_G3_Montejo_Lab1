@@ -1,8 +1,8 @@
-package com.peerstack.backend.controller;
+package com.collabmatch.backend.controller;
 
-import com.peerstack.backend.dto.UserResponse;
-import com.peerstack.backend.model.User;
-import com.peerstack.backend.service.AuthService;
+import com.collabmatch.backend.dto.UserResponse;
+import com.collabmatch.backend.model.User;
+import com.collabmatch.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,9 +1,9 @@
-package com.peerstack.backend.controller;
+package com.collabmatch.backend.controller;
 
-import com.peerstack.backend.dto.AuthResponse;
-import com.peerstack.backend.dto.LoginRequest;
-import com.peerstack.backend.dto.RegisterRequest;
-import com.peerstack.backend.service.AuthService;
+import com.collabmatch.backend.dto.AuthResponse;
+import com.collabmatch.backend.dto.LoginRequest;
+import com.collabmatch.backend.dto.RegisterRequest;
+import com.collabmatch.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,11 +1,11 @@
-package com.peerstack.backend.service;
+package com.collabmatch.backend.service;
 
-import com.peerstack.backend.dto.AuthResponse;
-import com.peerstack.backend.dto.LoginRequest;
-import com.peerstack.backend.dto.RegisterRequest;
-import com.peerstack.backend.dto.UserResponse;
-import com.peerstack.backend.model.User;
-import com.peerstack.backend.repository.InMemoryUserRepository;
+import com.collabmatch.backend.dto.AuthResponse;
+import com.collabmatch.backend.dto.LoginRequest;
+import com.collabmatch.backend.dto.RegisterRequest;
+import com.collabmatch.backend.dto.UserResponse;
+import com.collabmatch.backend.model.User;
+import com.collabmatch.backend.repository.InMemoryUserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
