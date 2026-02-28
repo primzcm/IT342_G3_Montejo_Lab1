@@ -5,7 +5,7 @@ import com.collabmatch.backend.dto.LoginRequest;
 import com.collabmatch.backend.dto.RegisterRequest;
 import com.collabmatch.backend.dto.UserResponse;
 import com.collabmatch.backend.model.User;
-import com.collabmatch.backend.repository.InMemoryUserRepository;
+import com.collabmatch.backend.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,22 +17,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
-    private final InMemoryUserRepository userRepository;
+    private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final Map<String, String> tokenToUserId = new ConcurrentHashMap<>();
+    private final Map<String, Long> tokenToUserId = new ConcurrentHashMap<>();
 
-    public AuthService(InMemoryUserRepository userRepository) {
+    public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
 
         User user = new User(
-                UUID.randomUUID().toString(),
                 request.getUsername(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
@@ -46,7 +45,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByUsernameIgnoreCase(request.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -58,7 +57,7 @@ public class AuthService {
     }
 
     public Optional<User> getUserByToken(String token) {
-        String userId = tokenToUserId.get(token);
+        Long userId = tokenToUserId.get(token);
         if (userId == null) {
             return Optional.empty();
         }
@@ -73,7 +72,7 @@ public class AuthService {
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), user.getCreatedAt());
     }
 
-    private String createToken(String userId) {
+    private String createToken(Long userId) {
         String token = UUID.randomUUID().toString();
         tokenToUserId.put(token, userId);
         return token;

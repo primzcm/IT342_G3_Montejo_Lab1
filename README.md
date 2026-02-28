@@ -13,8 +13,7 @@ CollabMatch is a platform where users can find partners or teammates for project
 - Backend: Java 17, Spring Boot 3, Spring Web, Spring Validation, BCrypt (`spring-security-crypto`)
 - Web: React 18, React Router, Vite
 - Mobile: Android Kotlin, Jetpack Compose, Retrofit
-- Data Store: In-memory storage (no database required for now)
-- Planned later: MySQL integration
+- Data Store: PostgreSQL (Flyway migrations + Spring Data JPA)
 
 ## Project Structure
 
@@ -52,15 +51,20 @@ CollabMatch
 
 ## Steps to Run Backend
 
-1. Open terminal in `backend`:
+1. Create the PostgreSQL database and user:
+   ```sql
+   CREATE USER collabmatch WITH PASSWORD 'collabmatch';
+   CREATE DATABASE collabmatch OWNER collabmatch;
+   ```
+2. Open terminal in `backend`:
    ```bash
    cd backend
    ```
-2. Run the app:
+3. Run the app:
    ```bash
    mvnw.cmd spring-boot:run
    ```
-3. Backend runs on:
+4. Backend runs on:
    ```text
    http://localhost:8080
    ```
@@ -97,6 +101,7 @@ Prerequisite:
 
 Note:
 - Emulator uses `http://10.0.2.2:8080` to access host backend.
+- Flyway will auto-create the `users` table on first run.
 
 ## API Endpoints
 
@@ -165,7 +170,6 @@ All API endpoints return a consistent response envelope:
 - Join teams and manage collaboration requests
 - Build project groups for creative and academic work
 
-## Note on MySQL
+## Note on PostgreSQL
 
-Per Session 1 constraints for this environment, the current implementation uses in-memory storage and does not require local database/admin setup.
-MySQL integration can be added in a future session.
+The backend now uses PostgreSQL with Flyway migrations and Spring Data JPA for persistence.

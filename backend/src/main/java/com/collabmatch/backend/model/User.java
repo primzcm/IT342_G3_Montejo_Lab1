@@ -1,23 +1,44 @@
 package com.collabmatch.backend.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
 
+@Entity
+@Table(name = "users")
 public class User {
-    private final String id;
-    private final String username;
-    private final String email;
-    private final String passwordHash;
-    private final Instant createdAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
+    private Long id;
 
-    public User(String id, String username, String email, String passwordHash, Instant createdAt) {
-        this.id = id;
+    @Column(nullable = false, length = 50)
+    private String username;
+
+    @Column(nullable = false, length = 255)
+    private String email;
+
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    protected User() {}
+
+    public User(String username, String email, String passwordHash, Instant createdAt) {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
         this.createdAt = createdAt;
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
