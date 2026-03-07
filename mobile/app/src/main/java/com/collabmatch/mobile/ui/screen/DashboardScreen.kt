@@ -51,7 +51,7 @@ fun DashboardScreen(
             loading -> Text("Loading account...")
             error != null -> Text(error ?: "Unable to load account")
             user != null -> {
-                Text("Welcome, ${user?.username}")
+                Text("Welcome, ${user?.firstname} ${user?.lastname}")
                 Text("Email: ${user?.email}")
                 Text("User ID: ${user?.id}")
                 Text("Joined: ${user?.createdAt}")

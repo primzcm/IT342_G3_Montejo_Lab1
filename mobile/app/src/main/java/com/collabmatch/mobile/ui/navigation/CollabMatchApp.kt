@@ -13,7 +13,7 @@ import com.collabmatch.mobile.ui.screen.RegisterScreen
 
 @Composable
 fun CollabMatchApp(repository: AuthRepository, navController: NavHostController = rememberNavController()) {
-    val startDestination = if (repository.getToken().isNullOrBlank()) AppRoute.Login.route else AppRoute.Dashboard.route
+    val startDestination = if (repository.getAccessToken().isNullOrBlank()) AppRoute.Login.route else AppRoute.Dashboard.route
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(AppRoute.Login.route) {
@@ -56,5 +56,5 @@ fun CollabMatchApp(repository: AuthRepository, navController: NavHostController 
 }
 
 private fun onAuthenticated(repository: AuthRepository, payload: AuthPayload) {
-    repository.saveToken(payload.token)
+    repository.saveTokens(payload.accessToken, payload.refreshToken)
 }

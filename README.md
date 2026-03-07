@@ -30,11 +30,11 @@ CollabMatch
 ## Implemented Scope
 
 ### Backend (Spring Boot)
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/user/me` (protected)
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/user/me` (protected)
 - Password encryption with BCrypt
-- Token-based authentication using in-memory storage
+- JWT access tokens + refresh tokens (stored in DB)
 
 ### Web App (React)
 - Register page
@@ -107,57 +107,63 @@ Note:
 
 ### 1) Register
 - Method: `POST`
-- URL: `/api/auth/register`
+- URL: `/api/v1/auth/register`
 - Request body:
   ```json
   {
-    "username": "johndoe",
     "email": "john@example.com",
-    "password": "secret123"
+    "password": "secret12345",
+    "firstname": "John",
+    "lastname": "Doe"
   }
   ```
 - Success response: `201 Created`
 
 ### 2) Login
 - Method: `POST`
-- URL: `/api/auth/login`
+- URL: `/api/v1/auth/login`
 - Request body:
   ```json
   {
-    "username": "johndoe",
-    "password": "secret123"
+    "email": "john@example.com",
+    "password": "secret12345"
   }
   ```
 - Success response: `200 OK`
 
 ### 3) Current User (Protected)
 - Method: `GET`
-- URL: `/api/user/me`
+- URL: `/api/v1/user/me`
 - Header:
   ```text
-  Authorization: Bearer <token>
+  Authorization: Bearer <accessToken>
   ```
 - Success response: `200 OK`
 
 ### 4) Logout
 - Method: `POST`
-- URL: `/api/auth/logout`
-- Header:
+- URL: `/api/v1/auth/logout`
+- Headers:
   ```text
-  Authorization: Bearer <token>
+  Authorization: Bearer <accessToken>
+  ```
+- Request body:
+  ```json
+  {
+    "refreshToken": "<refreshToken>"
+  }
   ```
 - Success response: `200 OK`
 
 ### Response Format
 
-All API endpoints return a consistent response envelope:
+All API endpoints return a consistent response envelope (aligned to the SDD):
 
 ```json
 {
   "success": true,
-  "message": "Login successful",
   "data": {},
-  "errors": null,
+  "error": null,
   "timestamp": "2026-02-14T04:00:00Z"
 }
 ```

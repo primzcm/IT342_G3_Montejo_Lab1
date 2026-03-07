@@ -28,9 +28,11 @@ fun RegisterScreen(
     onRegisterSuccess: (AuthPayload) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var username by remember { mutableStateOf("") }
+    var firstname by remember { mutableStateOf("") }
+    var lastname by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -43,9 +45,9 @@ fun RegisterScreen(
         Text("Create your CollabMatch account")
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            value = firstname,
+            onValueChange = { firstname = it },
+            label = { Text("First name") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -57,9 +59,23 @@ fun RegisterScreen(
         )
 
         OutlinedTextField(
+            value = lastname,
+            onValueChange = { lastname = it },
+            label = { Text("Last name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = { Text("Confirm password") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -70,7 +86,12 @@ fun RegisterScreen(
                 loading = true
                 error = null
                 scope.launch {
-                    when (val result = repository.register(username.trim(), email.trim(), password)) {
+                    if (password != confirmPassword) {
+                        error = "Passwords do not match"
+                        loading = false
+                        return@launch
+                    }
+                    when (val result = repository.register(firstname.trim(), lastname.trim(), email.trim(), password)) {
                         is RepoResult.Success -> onRegisterSuccess(result.data)
                         is RepoResult.Error -> error = result.message
                     }
