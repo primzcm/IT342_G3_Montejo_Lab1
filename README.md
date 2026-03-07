@@ -13,8 +13,7 @@ CollabMatch is a platform where users can find partners or teammates for project
 - Backend: Java 17, Spring Boot 3, Spring Web, Spring Validation, BCrypt (`spring-security-crypto`)
 - Web: React 18, React Router, Vite
 - Mobile: Android Kotlin, Jetpack Compose, Retrofit
-- Data Store: In-memory storage (no database required for now)
-- Planned later: MySQL integration
+- Data Store: PostgreSQL (Flyway migrations + Spring Data JPA)
 
 ## Project Structure
 
@@ -31,11 +30,11 @@ CollabMatch
 ## Implemented Scope
 
 ### Backend (Spring Boot)
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/user/me` (protected)
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/user/me` (protected)
 - Password encryption with BCrypt
-- Token-based authentication using in-memory storage
+- JWT access tokens + refresh tokens (stored in DB)
 
 ### Web App (React)
 - Register page
@@ -52,15 +51,20 @@ CollabMatch
 
 ## Steps to Run Backend
 
-1. Open terminal in `backend`:
+1. Create the PostgreSQL database and user:
+   ```sql
+   CREATE USER collabmatch WITH PASSWORD 'collabmatch';
+   CREATE DATABASE collabmatch OWNER collabmatch;
+   ```
+2. Open terminal in `backend`:
    ```bash
    cd backend
    ```
-2. Run the app:
+3. Run the app:
    ```bash
    mvnw.cmd spring-boot:run
    ```
-3. Backend runs on:
+4. Backend runs on:
    ```text
    http://localhost:8080
    ```
@@ -97,62 +101,69 @@ Prerequisite:
 
 Note:
 - Emulator uses `http://10.0.2.2:8080` to access host backend.
+- Flyway will auto-create the `users` table on first run.
 
 ## API Endpoints
 
 ### 1) Register
 - Method: `POST`
-- URL: `/api/auth/register`
+- URL: `/api/v1/auth/register`
 - Request body:
   ```json
   {
-    "username": "johndoe",
     "email": "john@example.com",
-    "password": "secret123"
+    "password": "secret12345",
+    "firstname": "John",
+    "lastname": "Doe"
   }
   ```
 - Success response: `201 Created`
 
 ### 2) Login
 - Method: `POST`
-- URL: `/api/auth/login`
+- URL: `/api/v1/auth/login`
 - Request body:
   ```json
   {
-    "username": "johndoe",
-    "password": "secret123"
+    "email": "john@example.com",
+    "password": "secret12345"
   }
   ```
 - Success response: `200 OK`
 
 ### 3) Current User (Protected)
 - Method: `GET`
-- URL: `/api/user/me`
+- URL: `/api/v1/user/me`
 - Header:
   ```text
-  Authorization: Bearer <token>
+  Authorization: Bearer <accessToken>
   ```
 - Success response: `200 OK`
 
 ### 4) Logout
 - Method: `POST`
-- URL: `/api/auth/logout`
-- Header:
+- URL: `/api/v1/auth/logout`
+- Headers:
   ```text
-  Authorization: Bearer <token>
+  Authorization: Bearer <accessToken>
+  ```
+- Request body:
+  ```json
+  {
+    "refreshToken": "<refreshToken>"
+  }
   ```
 - Success response: `200 OK`
 
 ### Response Format
 
-All API endpoints return a consistent response envelope:
+All API endpoints return a consistent response envelope (aligned to the SDD):
 
 ```json
 {
   "success": true,
-  "message": "Login successful",
   "data": {},
-  "errors": null,
+  "error": null,
   "timestamp": "2026-02-14T04:00:00Z"
 }
 ```
@@ -165,7 +176,6 @@ All API endpoints return a consistent response envelope:
 - Join teams and manage collaboration requests
 - Build project groups for creative and academic work
 
-## Note on MySQL
+## Note on PostgreSQL
 
-Per Session 1 constraints for this environment, the current implementation uses in-memory storage and does not require local database/admin setup.
-MySQL integration can be added in a future session.
+The backend now uses PostgreSQL with Flyway migrations and Spring Data JPA for persistence.

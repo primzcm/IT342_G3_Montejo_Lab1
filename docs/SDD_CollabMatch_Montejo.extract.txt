@@ -1,0 +1,795 @@
+
+
+===== PAGE 1 =====
+
+ 
+ 
+ 
+IT342-[Section] 
+System Integration and 
+Architecture 
+ 
+System Design Document (SDD) 
+ 
+Project Title: CollabMatch 
+Prepared By: Montejo, Primo Christian C.  
+Version: 0.6 
+Date: 2/28/2026 
+Status: Final 
+ 
+ 
+ 
+ 
+ 
+
+
+===== PAGE 2 =====
+
+REVISION HISTORY TABLE 
+Versio
+n Date Author Changes Made Status 
+0.1 2/21/2026  Montejo,  Primo 
+Christian C.  Initial draft Draft 
+0.6 2/28/2026  Montejo,  Primo 
+Christian C.  Finalize draft  Final 
+1 [Date] [Your Name] TBA Approved  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+===== PAGE 3 =====
+
+ 
+TABLE OF CONTENTS 
+Contents 
+EXECUTIVE SUMMARY ....................................................................................................... 4  
+1.0 INTRODUCTION ...................................................................................................... 5  
+2.0 FUNCTIONAL REQUIREMENTS SPECIFICATION ........................................................ 5  
+3.0 NON-FUNCTIONAL REQUIREMENTS ........................................................................ 8  
+4.0 SYSTEM ARCHITECTURE .......................................................................................... 9  
+5.0 API CONTRACT & COMMUNICATION ...................................................................... 10  
+Authentication Endpoints .......................................................................................................... 11 
+User Registration ................................................................................................................ 11 
+User Login .......................................................................................................................... 11 
+6.0 DATABASE DESIGN................................................................................................ 13  
+7.0 UI/UX DESIGN ....................................................................................................... 14  
+8.0 PLAN .................................................................................................................... 17  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+===== PAGE 4 =====
+
+EXECUTIVE SUMMARY 
+1.1 Project Overview 
+CollabMatch is a collaboration platform that enables users to create project posts, find 
+teammates, and manage collaboration requests. The system consists of a Spring Boot 
+backend API, a React web application, and an Android mobile app, integrated to provide a 
+seamless cross-platform experience. 
+ 
+1.2 Objectives 
+1. Develop a collaboration platform with authentication and project matching 
+features. 
+2. Implement a three-tier architecture using Spring Boot (backend), React (web), 
+and Android (mobile) 
+3. Create RESTful APIs for communication between all system components 
+4. Design a responsive user interface that works consistently across web and mobile 
+platforms 
+5. Deploy all system components to production-ready environments 
+ 
+1.3 Scope 
+Included Features:  
+● User registration and authentication (email/password) 
+● User profile management 
+● Create collaboration posts (project description + roles needed) 
+● Browse and filter collaboration posts 
+● Send join requests to projects 
+● Approve or reject join requests 
+● Dashboard for managing projects and requests 
+● PostgreSQL database with Flyway migrations 
+● React web interface 
+● Android mobile application 
+ 
+Excluded Features:  
+
+===== PAGE 5 =====
+
+● Real-time chat system 
+
+===== PAGE 6 =====
+
+● Video calls 
+● Payment processing 
+● Push notifications  
+● Social media login integration 
+● Advanced analytics dashboard 
+ 
+1.0 INTRODUCTION 
+1.1 Purpose 
+This document serves as the comprehensive design specification for the CollabMatch 
+system. It provides detailed requirements, architectural decisions, API contracts, database 
+design, and implementation roadmap to guide development and ensure all components 
+integrate seamlessly. 
+ 
+2.0 FUNCTIONAL REQUIREMENTS SPECIFICATION 
+2.1 Project Overview 
+Project Name:  CollabMatch 
+Domain:  Collaboration / Social Platform 
+Primary Users:   
+1. Creators 
+2. Project Owners 
+Problem Statement: Individuals often struggle to find teammates for projects due to 
+lack of centralized collaboration tools. 
+Solution: CollabMatch provides a structured platform where users can post project ideas, 
+define required roles, and manage collaboration requests. 
+ 
+2.2 Core User Journeys 
+Journey 1: Create and Manage a Project 
+1. User registers and logs in 
+2. Navigates to Dashboard 
+3. Creates a collaboration post 
+
+===== PAGE 7 =====
+
+1 
+ 4. Specifies project description and roles needed 
+5. Receives join requests 
+6. Approves or rejects requests 
+ 
+Journey 2: Join a Project 
+1. User logs in 
+2. Browses available collaboration posts 
+3. Filters by category or keyword 
+4. Sends join request to project 
+5. Receives approval or rejection 
+2.3 Feature List (MoSCoW) 
+MUST HAVE 
+1. User authentication (register, login, logout) 
+2. User profile management 
+3. Create collaboration posts 
+4. Browse collaboration posts 
+5. Send join requests 
+6. Approve/reject join requests 
+SHOULD HAVE 
+1. Project categories and filtering 
+2. View user’s created projects 
+3. View user’s joined projects 
+4. Basic input validation feedback 
+5. Responsive design for all screen sizes 
+COULD HAVE 
+1. Multi-language support 
+2. Project member listing 
+3. Basic project status tracking (Open / Closed) 
+WON'T HAVE 
+1. Real payment processing 
+2. Email notifications 
+3. Social login 
+4. Advanced analytics 
+
+===== PAGE 8 =====
+
+2 
+ 5. Multi-language support 
+2.4 Detailed Feature Specifications 
+Feature: User Authentication 
+● Screens:  Registration, Login, Forgot Password 
+● Fields: Email, Password, Confirm Password 
+● Validation:  Email format, password strength, uniqueness 
+● API Endpoints:  POST /auth/register, POST /auth/login, POST /auth/logout 
+● Security:  JWT tokens, password hashing with bcrypt 
+Feature: User Profile Management 
+● Screens: Profile View, Profile Edit 
+● Display: First Name, Last Name, Bio, Skills 
+● API Endpoints: GET /users/{id}, PUT /users/{id} 
+● Access Control: Users can only edit their own profile  
+ 
+Feature: Collaboration Posts 
+● Screens: Project Listing, Project Detail, Create Project 
+● Fields: Title, Description, Category, Roles Needed 
+● Display: List/Grid layout, Project title, short description, owner name 
+● Search & Filter: By keyword, By category 
+● API Endpoints: GET / projects, GET /projects/{id}, POST /projects, PUT 
+/projects/{id}, DELETE /projects/{id} 
+● Access Control: Only project owner can edit/delete their project 
+ 
+Feature: Join Request System (Transactional Function) 
+● Screens: Project Detail, Join Request Management 
+● Functions: Send join request, Approve request, Reject request, View 
+request status 
+● Persistence: Stored in database with status (PENDING, APPROVED, REJECTED) 
+● API Endpoints: POST /projects/{id}/requests, GET /projects/{id}/requests, PUT 
+/requests/{id}/approve, PUT /requests/{id}/reject 
+● Access Control: Only logged-in users can send requests, Only project owner 
+can approve/reject requests 
+ 
+2.5 Acceptance Criteria 
+AC-1: Successful User Registration 
+
+===== PAGE 9 =====
+
+3 
+ ➢ Given I am a new user 
+➢ When I enter valid email and strong password 
+➢ And confirm password matches 
+➢ And click "Create Account" 
+➢ Then my account should be created 
+➢ And I should be automatically logged in 
+➢ And redirected to the dashboard 
+AC-2: Create and Manage a Project 
+➢ Given I am logged in 
+➢ When I create a collaboration post with valid details 
+➢ And save the project 
+➢ Then the project should appear in the project listing 
+➢ And be visible to other users 
+ 
+AC-3: Send Join Request 
+➢ Given I am logged in 
+➢ When I view a project 
+➢ And click "Request to Join" 
+➢ Then a join request should be created with status PENDING 
+➢ And the project owner should see the request 
+ 
+AC-4: Approve Join Request 
+➢ Given I am the project owner 
+➢ When I approve a pending join request 
+➢ Then the request status should change to APPROVED 
+➢ And the user should become a project member 
+ 
+3.0 NON-FUNCTIONAL REQUIREMENTS 
+3.1 Performance Requirements 
+● API response time: ≤ 2 seconds for 95% of requests 
+● Web page load time: ≤ 3 seconds on broadband 
+● Mobile app cold start: ≤ 3 seconds 
+● Support 100 concurrent users 
+● Database queries complete within 500ms 
+3.2 Security Requirements 
+
+===== PAGE 10 =====
+
+4 
+ ● HTTPS for all communications 
+● JWT token authentication 
+● Password hashing with bcrypt (salt rounds = 12) 
+● SQL injection prevention 
+● XSS protection 
+● Rate limiting: 100 requests/minute per IP 
+3.3 Compatibility Requirements 
+● Web Browsers:  Chrome, Firefox, Safari, Edge (latest 2 versions) 
+● Android:  API Level 24+ (Android 7.0+) 
+● Screen Sizes:  Mobile (360px+), Tablet (768px+), Desktop (1024px+) 
+● Operating Systems:  Windows 10+, macOS 10.15+, Linux Ubuntu 20.04+ 
+3.4 Usability Requirements 
+● A new user should be able to create an account and post a project within 5 
+minutes 
+● Navigation should be consistent across web and mobile platforms 
+● Clear validation error messages for incorrect inputs 
+● Touch targets minimum 44x44px on mobile 
+● Forms should provide real-time validation feedback 
+● Users should be able to find a collaboration post within 3 clicks 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+4.0 SYSTEM ARCHITECTURE 
+4.1 Component Diagram 
+Note: This should be a component diagram 
+
+===== PAGE 11 =====
+
+5 
+  
+Technology Stack:  
+● Backend:  Java 17, Spring Boot 3.x, Spring Security, Spring Data JPA, Flyway 
+● Database:  PostgreSQL 14+ 
+● Web Frontend:  React 18, TypeScript, Tailwind CSS, Axios 
+● Mobile: Kotlin, Jetpack Compose, Retrofit, Room 
+● Build Tools:  Maven (Backend), npm/yarn (Web), Gradle (Android) 
+● Deployment:  Railway/Heroku (Backend), Vercel/Netlify (Web), APK (Mobile) 
+ 
+5.0 API CONTRACT & COMMUNICATION 
+5.1 API Standards 
+Base URL  https://[server_hostname]:[port]/api/v1  
+Format JSON for all requests/responses  
+Authentication  Bearer token (JWT) in Authorization 
+header 
+Response Structure  { 
+  "success": boolean, 
+  "data": object|null, 
+  "error": { 
+    "code": string, 
+
+
+===== PAGE 12 =====
+
+6 
+     "message": string,  
+    "details": object|null 
+  }, 
+  "timestamp": string 
+} 
+ 
+5.2 Endpoint Specifications 
+Authentication Endpoints 
+User Registration 
+Description  User Registration  
+API URL  /auth/register  
+HTTP Request Method  POST 
+Format JSON for all requests/responses  
+Authentication  None 
+Request Payload  { 
+   “email”: <email>, 
+   “password”: <password>, 
+   “firstname”: <firstname>, 
+   “lastname”: <lastname>, 
+} 
+Response Structure  { 
+  "success": boolean, 
+  "data":  { 
+        user { 
+            “email”: <email>, 
+            “firstname”: <firstname>, 
+            “lastname”: <lastname>, 
+        }, 
+        “accessToken”: <token>, 
+        “refreshToken”: <token>, 
+  }, 
+  "error": { 
+    "code": string, 
+    "message": string, 
+    "details": object|null 
+  }, 
+  "timestamp": string 
+} 
+User Login 
+Description  User Login  
+API URL  /auth/login  
+
+===== PAGE 13 =====
+
+7 
+ HTTP Method  POST 
+Format JSON for all requests/responses  
+Authentication  None 
+Request Payload  { 
+   “email”: <email>, 
+   “password”: <password>, 
+} 
+Response Structure  { 
+  "success": boolean, 
+  "data":  { 
+        “user”:  { 
+            “email”: <email>, 
+            “firstname”: <firstname>, 
+            “lastname”: <lastname>, 
+            “role”: <role>, 
+        }, 
+        “accessToken”: <token>, 
+        “refreshToken”: <token>, 
+  }, 
+  "error": { 
+    "code": string, 
+    "message": string, 
+    "details": object|null 
+  }, 
+  "timestamp": string 
+} 
+ 
+5.3 Error Handling 
+HTTP Status Codes 
+● 200 OK - Successful request 
+● 201 Created - Resource created 
+● 400 Bad Request - Invalid input 
+● 401 Unauthorized - Authentication required/failed 
+● 403 Forbidden - Insufficient permissions 
+● 404 Not Found - Resource doesn't exist 
+● 409 Conflict - Duplicate resource 
+● 500 Internal Server Error - Server error 
+Error Code Examples 
+ 
+Example 1  json 
+{ 
+
+===== PAGE 14 =====
+
+8 
+   "success": false,  
+  "data": null, 
+  "error": { 
+    "code": "AUTH-001", 
+    "message": "Invalid credentials", 
+    "details": "Email or password is incorrect" 
+  }, 
+  "timestamp": "2024-01-28T10:30:00Z" 
+} 
+ 
+Example 2  { 
+  "success": false, 
+  "data": null, 
+  "error": { 
+    "code": "VALID-001", 
+    "message": "Validation failed", 
+    "details": { 
+      "email": "Email is required", 
+      "password": "Must be at least 8 characters" 
+    } 
+  }, 
+  "timestamp": "2024-01-28T10:30:00Z" 
+} 
+ 
+ 
+Common Error Codes 
+● AUTH-001: Invalid credentials 
+● AUTH-002: Token expired 
+● AUTH-003: Insufficient permissions 
+● VALID-001: Validation failed 
+● DB-001: Resource not found 
+● DB-002: Duplicate entry 
+● BUSINESS-001: Project is closed 
+● SYSTEM-001: Internal server error 
+ 
+6.0 DATABASE DESIGN 
+6.1 Entity Relationship Diagram 
+Note: This should be an ERD (Database Schema) 
+Detailed Relationships:  
+
+===== PAGE 15 =====
+
+9 
+ ● One-to-Many:  User → Projects (A user can create multiple projects)  
+● One-to-Many: Project → JoinRequests (A project can receive multiple join 
+requests) 
+● One-to-Many: User → JoinRequests (A user can send multiple join requests) 
+● Many-to-Many: Users ↔ Projects (Users can join multiple projects; projects can 
+have multiple members) 
+● One-to-Many: User → RefreshTokens (A user can have multiple active refresh 
+tokens) 
+Key Tables:  
+1. users – User accounts and authentication 
+2. projects – Collaboration posts created by users 
+3. join_requests – Requests from users to join projects 
+4. project_members – Approved project participants 
+5. refresh_tokens  - JWT refresh tokens 
+Table Structure Summary:  
+● users: id, email, password_hash, username, role, created_at 
+● projects: id, title, description, category, owner_id, status, created_at 
+● join_requests: id, project_id, requester_id, status, message, created_at 
+● project_members: id, project_id, user_id, joined_at 
+● refresh_tokens: id, user_id, token, expiry_date 
+ 
+7.0 UI/UX DESIGN 
+7.1 Web Application Wireframes 
+Note: This should be wireframes from Figma 
+Landing Page / Homepage 
+Header: 
+CollabMatch Logo 
+Search Bar 
+Create Project Button 
+Login / Register or User Menu 
+Main Content: 
+Hero section (Brief description of platform) 
+Featured Projects section 
+
+===== PAGE 16 =====
+
+10 
+ Project Grid (3 columns desktop, 2 tablet, 1 mobile) 
+Each Project Card: 
+Project Title 
+Short Description (2–3 lines) 
+Category Tag 
+Owner Name 
+Status Badge (Open / Closed) 
+View Details button 
+Footer: 
+About 
+Contact 
+Copyright 
+ 
+Dashboard (After Login) 
+Header: 
+Logo 
+
+
+===== PAGE 17 =====
+
+11 
+ Search Bar 
+Create Project 
+Profile Dropdown 
+Main Sections: 
+My Created Projects 
+My Joined Projects 
+Pending Join Requests (if project owner) 
+Project Listing Page 
+Header: 
+Logo 
+Search Bar 
+Filters (Category Dropdown) 
+Content: 
+Project Grid Layout 
+Pagination or Infinite Scroll 
+Filters: 
+Category 
+Status (Open / Closed) 
+Keyword Search 
+Empty State: 
+No projects found message 
+
+===== PAGE 18 =====
+
+12 
+  
+Project Detail Page 
+Back Button 
+Project Information: 
+Title 
+Full Description 
+Category Tag 
+Owner Information 
+Status Badge 
+Actions: 
+Request to Join button (if not owner) 
+Edit Project button (if owner) 
+Sections: 
+Roles Needed 
+Project Members List 
+Join Requests (visible to owner only) 
+ 
+Create / Edit Project Page 
+
+
+===== PAGE 19 =====
+
+13 
+ Form Fields: 
+Title 
+Description 
+Category (Dropdown) 
+Roles Needed (Text area or tags) 
+Status (Open / Closed) 
+Buttons: 
+Save Project 
+Cancel 
+Validation: 
+Required field indicators 
+Inline error messages 
+Join Request Management Page (Owner View) 
+Table Layout: 
+Requester Name 
+Message 
+Status 
+Action Buttons: Approve / Reject 
+Status Indicators: 
+PENDING (Amber) 
+APPROVED (Green) 
+REJECTED (Red) 
+Profile Page 
+User Information: 
+Avatar 
+Full Name 
+Bio 
+
+===== PAGE 20 =====
+
+14 
+ Skills 
+Sections: 
+Created Projects 
+Joined Projects 
+Buttons: 
+Edit Profile 
+Logout 
+ 
+7.2 Mobile Application Wireframes 
+Note: This should be wireframes from Figma 
+Bottom Navigation 
+[ፐፑፒፓፔፕፖ Home] [ ၠၡၢ Search] [ 㕎㕏㕐 Create] [ ᜌᜍ Profile] 
+Home Screen 
+Project feed (vertical list) 
+Each card shows: 
+  - Project title 
+  - Short description 
+  - Category tag 
+  - Owner name 
+Pull to refresh 
+Tap card → Project Detail 
+
+===== PAGE 21 =====
+
+15 
+  
+Search Screen 
+Search bar (search by title or keyword) 
+Category filter dropdown 
+Filtered project list 
+Empty state message if no results 
+Create Project Screen 
+Input fields: 
+  - Title 
+  - Description 
+  - Category 
+  - Roles needed 
+Validation feedback 
+“Create Project” button (fixed bottom) 
+Project Detail Screen 
+Back arrow 
+Project title 
+
+
+===== PAGE 22 =====
+
+16 
+ Full description 
+Category tag 
+Owner information 
+Join Request button (if not owner) 
+Manage Requests button (if owner) 
+Project members list 
+Join Request Screen 
+Optional message field 
+“Submit Request” button 
+Confirmation message after submission 
+Profile Screen 
+User avatar 
+Name and bio 
+Skills section 
+My Projects (Created) 
+Joined Projects 
+Edit Profile button 
+Logout button 
+Mobile-Specific Features: 
+ Touch-optimized buttons (min 44x44px) 
+ Gesture support (swipe, pull-to-refresh) 
+ Bottom navigation for main actions 
+ Form validation feedback 
+ Simplified forms for mobile input 
+ Design System:  
+● Colors: Background (#0F172A), Surface (#1E293B), Primary (#F59E0B), Hover 
+(#FB923C), Success (#22C55E), Error (#EF4444) 
+
+===== PAGE 23 =====
+
+17 
+ ● Typography:  Inter / Roboto, hierarchical sizing 
+● Spacing:  4px base unit system 
+● Components:  Elevated dark cards, rounded buttons (8px radius), consistent 
+input styling 
+● Design Approach:  Dark modern collaboration-focused mobile-first interface 
+8.0 PLAN 
+8.1 Project Timeline 
+Phase 1: Planning & Design (Week 1-2) 
+Week 1: Requirements & Architecture 
+ Day 1-2: Project setup and documentation 
+ Day 3-4: Complete FRS and NFR 
+ Day 5-7: System architecture design 
+ 
+Week 2: Detailed Design 
+ Day 1-2: API specification 
+ Day 3-4: Database design 
+ Day 5-6: UI/UX wireframes 
+ Day 7: Implementation plan finalization 
+ 
+Phase 2: Backend Development (Week 3-4) 
+Week 3: Foundation 
+ Day 1: Spring Boot setup with dependencies 
+ Day 2: Database configuration and entities 
+ Day 3: JWT authentication implementation 
+ Day 4: User management endpoints 
+ Day 5: Project CRUD operations 
+ 
+
+===== PAGE 24 =====
+
+18 
+ Week 4: Core Features  
+ Day 1: Join request implementation 
+ Day 2: Project membership logic 
+ Day 3: Search and filtering 
+ Day 4: Error handling and validation 
+ Day 5: API documentation and testing 
+ 
+Phase 3: Web Application (Week 5-6) 
+Week 5: Frontend Foundation 
+ Day 1: React setup with TypeScript 
+ Day 2: Authentication pages (login, register) 
+ Day 3: Project listing page 
+ Day 4: Project detail page 
+ Day 5: Create project page 
+ 
+Week 6: Complete Web Features 
+ Day 1: Join request flow 
+ Day 2: My Projects dashboard 
+ Day 3: Profile page 
+ Day 4: Responsive design polish 
+ Day 5: API integration and testing 
+ 
+Phase 4: Mobile Application (Week 7-8) 
+Week 7: Android Foundation 
+ Day 1: Android Studio setup and project structure 
+ Day 2: Authentication screens 
+ Day 3: Project feed 
+
+===== PAGE 25 =====
+
+19 
+  Day 4: Project detail + join request 
+ Day 5: API service layer 
+ 
+Week 8: Complete Mobile App 
+ Day 1: Create project screen 
+ Day 2: Profile + My Projects 
+ Day 3: UI polish and animations 
+ Day 4: Testing on emulator/device 
+ Day 5: APK generation and documentation 
+ 
+Phase 5: Integration & Deployment (Week 9-10) 
+Week 9: Integration Testing 
+ Day 1: End-to-end testing across platforms 
+ Day 2: Bug fixes and optimization 
+ Day 3: Security review 
+ Day 4: Performance testing 
+ Day 5: Documentation updates 
+ 
+Week 10: Deployment 
+ Day 1: Backend deployment (Railway/Heroku) 
+ Day 2: Web app deployment (Vercel/Netlify) 
+ Day 3: Mobile APK distribution 
+ Day 4: Final testing 
+ Day 5: Project submission 
+Milestones:  
+● M1 (End Week 2):  All design documents complete 
+● M2 (End Week 4):  Backend API fully functional 
+
+===== PAGE 26 =====
+
+20 
+ ● M3 (End Week 6):  Web application complete 
+● M4 (End Week 8):  Mobile application complete 
+● M5 (End Week 10):  Full system deployed and integrated 
+Critical Path:  
+1. Authentication system (Week 3) 
+2. Project CRUD API (Week 3-4) 
+3. Join request logic (Week 4) 
+4. Web integration (Week 6) 
+5. Cross-platform testing (Week 9) 
+Risk Mitigation:  
+● Start with simplest working version of each feature 
+● Test integration points early and often 
+● Keep backup of working versions 
+● Focus on core functionality before enhancements 
+ 

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 async function apiRequest(path, { method = "GET", body, token } = {}) {
   const headers = {
@@ -16,20 +16,17 @@ async function apiRequest(path, { method = "GET", body, token } = {}) {
   });
 
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : null;
+  const payload = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
-    const validationError =
-      payload?.errors && Object.keys(payload.errors).length > 0
-        ? Object.values(payload.errors)[0]
-        : null;
-    const errorMessage =
-      validationError ||
-      payload?.message ||
-      payload?.error ||
-      "Request failed. Please try again.";
+    const details = payload?.error?.details;
+    const detailMessage =
+      typeof details === "string"
+        ? details
+        : details && typeof details === "object" && Object.keys(details).length > 0
+          ? Object.values(details)[0]
+          : null;
+    const errorMessage = detailMessage || payload?.error?.message || "Request failed. Please try again.";
     throw new Error(errorMessage);
   }
 
@@ -37,28 +34,29 @@ async function apiRequest(path, { method = "GET", body, token } = {}) {
 }
 
 export function registerUser(data) {
-  return apiRequest("/api/auth/register", {
+  return apiRequest("/api/v1/auth/register", {
     method: "POST",
     body: data
   });
 }
 
 export function loginUser(data) {
-  return apiRequest("/api/auth/login", {
+  return apiRequest("/api/v1/auth/login", {
     method: "POST",
     body: data
   });
 }
 
 export function fetchCurrentUser(token) {
-  return apiRequest("/api/user/me", {
+  return apiRequest("/api/v1/user/me", {
     token
   });
 }
 
-export function logoutUser(token) {
-  return apiRequest("/api/auth/logout", {
+export function logoutUser({ accessToken, refreshToken }) {
+  return apiRequest("/api/v1/auth/logout", {
     method: "POST",
-    token
+    token: accessToken,
+    body: { refreshToken }
   });
 }

@@ -9,7 +9,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("collabmatch_token");
+    const token = localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token");
 
     if (!token) {
       navigate("/login", { replace: true });
@@ -20,20 +20,25 @@ function DashboardPage() {
       .then(setUser)
       .catch((err) => {
         setError(err.message);
+        localStorage.removeItem("collabmatch_access_token");
+        localStorage.removeItem("collabmatch_refresh_token");
         localStorage.removeItem("collabmatch_token");
       })
       .finally(() => setLoading(false));
   }, [navigate]);
 
   async function handleLogout() {
-    const token = localStorage.getItem("collabmatch_token");
+    const accessToken = localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token");
+    const refreshToken = localStorage.getItem("collabmatch_refresh_token");
     try {
-      if (token) {
-        await logoutUser(token);
+      if (accessToken && refreshToken) {
+        await logoutUser({ accessToken, refreshToken });
       }
     } catch {
       // Ignore logout errors because client-side token removal is sufficient.
     } finally {
+      localStorage.removeItem("collabmatch_access_token");
+      localStorage.removeItem("collabmatch_refresh_token");
       localStorage.removeItem("collabmatch_token");
       navigate("/login", { replace: true });
     }
@@ -57,7 +62,7 @@ function DashboardPage() {
   return (
     <main className="dashboard-page">
       <section className="card">
-        <h1>Welcome, {user.username}</h1>
+        <h1>Welcome, {user.firstname} {user.lastname}</h1>
         <p>Use CollabMatch to find collaborators and build project teams.</p>
         <p><strong>Email:</strong> {user.email}</p>
         <p><strong>User ID:</strong> {user.id}</p>

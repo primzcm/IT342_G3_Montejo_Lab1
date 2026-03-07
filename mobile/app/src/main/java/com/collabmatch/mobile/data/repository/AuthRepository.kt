@@ -16,32 +16,33 @@ class AuthRepository(
 ) {
     private val gson = Gson()
 
-    suspend fun register(username: String, email: String, password: String): RepoResult<AuthPayload> {
-        val response = authApi.register(RegisterRequest(username, email, password))
+    suspend fun register(firstname: String, lastname: String, email: String, password: String): RepoResult<AuthPayload> {
+        val response = authApi.register(RegisterRequest(email, firstname, lastname, password))
         return mapAuthResponse(response)
     }
 
-    suspend fun login(username: String, password: String): RepoResult<AuthPayload> {
-        val response = authApi.login(LoginRequest(username, password))
+    suspend fun login(email: String, password: String): RepoResult<AuthPayload> {
+        val response = authApi.login(LoginRequest(email, password))
         return mapAuthResponse(response)
     }
 
     suspend fun fetchCurrentUser(): RepoResult<UserDto> {
-        val token = sessionManager.getToken() ?: return RepoResult.Error("Please login first")
+        val token = sessionManager.getAccessToken() ?: return RepoResult.Error("Please login first")
         val response = authApi.me("Bearer $token")
         return mapResponse(response)
     }
 
     suspend fun logout(): RepoResult<Unit> {
-        val token = sessionManager.getToken() ?: return RepoResult.Success(Unit)
-        val response = authApi.logout("Bearer $token")
+        val accessToken = sessionManager.getAccessToken() ?: return RepoResult.Success(Unit)
+        val refreshToken = sessionManager.getRefreshToken() ?: return RepoResult.Success(Unit)
+        val response = authApi.logout("Bearer $accessToken", com.collabmatch.mobile.data.model.LogoutRequest(refreshToken))
         sessionManager.clearToken()
         return if (response.isSuccessful) RepoResult.Success(Unit) else RepoResult.Error(extractErrorMessage(response))
     }
 
-    fun saveToken(token: String) = sessionManager.saveToken(token)
+    fun saveTokens(accessToken: String, refreshToken: String) = sessionManager.saveTokens(accessToken, refreshToken)
 
-    fun getToken(): String? = sessionManager.getToken()
+    fun getAccessToken(): String? = sessionManager.getAccessToken()
 
     private fun mapAuthResponse(response: Response<ApiResponse<AuthPayload>>): RepoResult<AuthPayload> {
         if (!response.isSuccessful) {
@@ -53,7 +54,7 @@ class AuthRepository(
         return if (body?.success == true && data != null) {
             RepoResult.Success(data)
         } else {
-            RepoResult.Error(body?.message ?: "Request failed")
+            RepoResult.Error(body?.error?.message ?: "Request failed")
         }
     }
 
@@ -67,7 +68,7 @@ class AuthRepository(
         return if (body?.success == true && data != null) {
             RepoResult.Success(data)
         } else {
-            RepoResult.Error(body?.message ?: "Request failed")
+            RepoResult.Error(body?.error?.message ?: "Request failed")
         }
     }
 
@@ -79,12 +80,19 @@ class AuthRepository(
 
         return try {
             val json = gson.fromJson(errorBody, JsonObject::class.java)
-            val errors = json.getAsJsonObject("errors")
-            if (errors != null && errors.entrySet().isNotEmpty()) {
-                errors.entrySet().first().value.asString
-            } else {
-                json.get("message")?.asString ?: "Request failed"
+            val error = json.getAsJsonObject("error")
+            val details = error?.get("details")
+            val detailMessage = when {
+                details == null -> null
+                details.isJsonPrimitive -> details.asString
+                details.isJsonObject -> {
+                    val obj = details.asJsonObject
+                    if (obj.entrySet().isNotEmpty()) obj.entrySet().first().value.asString else null
+                }
+                else -> null
             }
+
+            detailMessage ?: error?.get("message")?.asString ?: "Request failed"
         } catch (_: Exception) {
             "Request failed"
         }

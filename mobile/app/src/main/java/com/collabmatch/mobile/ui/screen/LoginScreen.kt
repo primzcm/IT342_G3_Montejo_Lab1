@@ -28,7 +28,7 @@ fun LoginScreen(
     onLoginSuccess: (AuthPayload) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -42,9 +42,9 @@ fun LoginScreen(
         Text("Login to CollabMatch")
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -62,7 +62,7 @@ fun LoginScreen(
                 loading = true
                 error = null
                 scope.launch {
-                    when (val result = repository.login(username.trim(), password)) {
+                    when (val result = repository.login(email.trim(), password)) {
                         is RepoResult.Success -> onLoginSuccess(result.data)
                         is RepoResult.Error -> error = result.message
                     }

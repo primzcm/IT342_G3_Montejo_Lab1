@@ -1,8 +1,8 @@
-package com.collabmatch.backend.config;
+package edu.cit.montejo.collabmatch.config;
 
-import com.collabmatch.backend.exception.UnauthorizedException;
-import com.collabmatch.backend.model.User;
-import com.collabmatch.backend.service.AuthService;
+import edu.cit.montejo.collabmatch.exception.UnauthorizedException;
+import edu.cit.montejo.collabmatch.model.User;
+import edu.cit.montejo.collabmatch.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -24,7 +24,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String token = authorizationHeader.substring(7);
-        User user = authService.getUserByToken(token).orElse(null);
+        User user = authService.getUserByAccessToken(token).orElse(null);
         if (user == null) {
             throw new UnauthorizedException("Invalid token");
         }

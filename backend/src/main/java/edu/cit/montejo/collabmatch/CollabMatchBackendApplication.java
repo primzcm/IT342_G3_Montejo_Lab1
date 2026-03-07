@@ -1,4 +1,4 @@
-package com.collabmatch.backend;
+package edu.cit.montejo.collabmatch;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

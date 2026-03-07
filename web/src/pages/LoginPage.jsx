@@ -6,7 +6,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from?.pathname || "/dashboard";
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +17,8 @@ function LoginPage() {
 
     try {
       const response = await loginUser(form);
-      localStorage.setItem("collabmatch_token", response.token);
+      localStorage.setItem("collabmatch_access_token", response.accessToken);
+      localStorage.setItem("collabmatch_refresh_token", response.refreshToken);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -33,11 +34,12 @@ function LoginPage() {
         <p>Find teammates for creative, academic, and event-based projects.</p>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            Email
             <input
-              type="text"
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              type="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
           </label>
@@ -45,9 +47,11 @@ function LoginPage() {
             Password
             <input
               type="password"
+              placeholder="At least 8 characters"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
+              minLength={8}
             />
           </label>
           {error && <p className="error">{error}</p>}

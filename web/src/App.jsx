@@ -5,7 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const hasToken = Boolean(localStorage.getItem("collabmatch_token"));
+  const hasToken = Boolean(localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token"));
 
   return (
     <Routes>

@@ -4,7 +4,7 @@ import { registerUser } from "../services/api";
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ firstname: "", lastname: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -14,8 +14,18 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await registerUser(form);
-      localStorage.setItem("collabmatch_token", response.token);
+      if (form.password !== form.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      const response = await registerUser({
+        firstname: form.firstname,
+        lastname: form.lastname,
+        email: form.email,
+        password: form.password
+      });
+      localStorage.setItem("collabmatch_access_token", response.accessToken);
+      localStorage.setItem("collabmatch_refresh_token", response.refreshToken);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -31,11 +41,20 @@ function RegisterPage() {
         <p>Build your profile and connect with teammates based on skills and interests.</p>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            First name
             <input
               type="text"
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              value={form.firstname}
+              onChange={(e) => setForm({ ...form, firstname: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Last name
+            <input
+              type="text"
+              value={form.lastname}
+              onChange={(e) => setForm({ ...form, lastname: e.target.value })}
               required
             />
           </label>
@@ -55,7 +74,17 @@ function RegisterPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
-              minLength={6}
+              minLength={8}
+            />
+          </label>
+          <label>
+            Confirm password
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              required
+              minLength={8}
             />
           </label>
           {error && <p className="error">{error}</p>}

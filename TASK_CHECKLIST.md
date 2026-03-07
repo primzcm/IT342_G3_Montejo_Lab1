@@ -18,13 +18,12 @@
 - [x] Connect Android app to Spring Boot backend
 - [x] Standardize backend API response envelope (`success`, `message`, `data`, `errors`, `timestamp`)
 - [x] Improve backend validation/error handling and protected logout behavior
+- [x] Add PostgreSQL persistence layer (Flyway + Spring Data JPA)
 
 ## IN-PROGRESS
-- [ ] Prepare MySQL-backed persistence layer for future session
 - [ ] Add backend, web, and mobile automated tests
 
 ## TODO
 - [ ] Implement collaboration opportunity posting feature
 - [ ] Implement skill and interest matching for teammate discovery
 - [ ] Implement team join/request flow
-- [ ] Integrate MySQL database for persistent storage
