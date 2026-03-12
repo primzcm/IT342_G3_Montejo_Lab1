@@ -2,17 +2,13 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
+import HomePage from "./pages/HomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const hasToken = Boolean(localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token"));
-
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<Navigate to={hasToken ? "/dashboard" : "/login"} replace />}
-      />
+      <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
