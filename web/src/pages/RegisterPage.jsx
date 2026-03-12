@@ -26,7 +26,7 @@ function RegisterPage() {
       });
       localStorage.setItem("collabmatch_access_token", response.accessToken);
       localStorage.setItem("collabmatch_refresh_token", response.refreshToken);
-      navigate("/dashboard");
+      navigate("/projects");
     } catch (err) {
       setError(err.message);
     } finally {

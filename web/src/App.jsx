@@ -2,20 +2,26 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
-import HomePage from "./pages/HomePage";
+import ProductListingPage from "./pages/ProductListingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<DashboardPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
         path="/dashboard"
         element={
+          <Navigate to="/" replace />
+        }
+      />
+      <Route
+        path="/projects"
+        element={
           <ProtectedRoute>
-            <DashboardPage />
+            <ProductListingPage />
           </ProtectedRoute>
         }
       />

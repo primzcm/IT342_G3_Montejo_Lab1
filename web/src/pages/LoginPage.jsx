@@ -5,7 +5,7 @@ import { loginUser } from "../services/api";
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = location.state?.from?.pathname || "/dashboard";
+  const redirectTo = location.state?.from?.pathname || "/projects";
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
