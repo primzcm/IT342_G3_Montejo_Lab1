@@ -6,6 +6,23 @@ mobile/.gradle/
 mobile/build/
 mobile/app/build/
 
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+web/.env
+web/.env.*
+!web/.env.example
+mobile/local.properties
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
 # Editor / OS
 .vscode/
 .idea/

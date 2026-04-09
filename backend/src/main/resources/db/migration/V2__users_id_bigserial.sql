@@ -54,7 +54,11 @@ BEGIN
         FROM ranked r
         WHERE u.id = r.id;
 
-        PERFORM setval('users_id_seq', (SELECT COALESCE(MAX(id_new), 0) FROM users));
+        PERFORM setval(
+            'users_id_seq',
+            GREATEST((SELECT COALESCE(MAX(id_new), 0) FROM users), 1),
+            true
+        );
 
         ALTER TABLE users ALTER COLUMN id_new SET DEFAULT nextval('users_id_seq');
         ALTER TABLE users ALTER COLUMN id_new SET NOT NULL;

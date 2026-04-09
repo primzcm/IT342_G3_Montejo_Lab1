@@ -13,7 +13,7 @@ CollabMatch is a platform where users can find partners or teammates for project
 - Backend: Java 17, Spring Boot 3, Spring Web, Spring Validation, BCrypt (`spring-security-crypto`)
 - Web: React 18, React Router, Vite
 - Mobile: Android Kotlin, Jetpack Compose, Retrofit
-- Data Store: PostgreSQL (Flyway migrations + Spring Data JPA)
+- Data Store: PostgreSQL / Supabase Postgres (Flyway migrations + Spring Data JPA)
 
 ## Project Structure
 
@@ -35,6 +35,7 @@ CollabMatch
 - `GET /api/v1/user/me` (protected)
 - Password encryption with BCrypt
 - JWT access tokens + refresh tokens (stored in DB)
+- Flyway schema for `users`, `refresh_tokens`, `projects`, `join_requests`, and `project_members`
 
 ### Web App (React)
 - Register page
@@ -51,10 +52,35 @@ CollabMatch
 
 ## Steps to Run Backend
 
-1. Create the PostgreSQL database and user:
+1. Set the database connection variables.
+
+   Local PostgreSQL example:
    ```sql
    CREATE USER collabmatch WITH PASSWORD 'collabmatch';
    CREATE DATABASE collabmatch OWNER collabmatch;
+   ```
+
+   Then export:
+   ```bash
+   export DATABASE_URL="jdbc:postgresql://localhost:5432/collabmatch?sslmode=disable"
+   export DATABASE_USERNAME="collabmatch"
+   export DATABASE_PASSWORD="collabmatch"
+   export JWT_SECRET="replace-this-before-production"
+   ```
+
+   Supabase example:
+   ```bash
+   export DATABASE_URL="jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres?sslmode=require"
+   export DATABASE_USERNAME="postgres"
+   export DATABASE_PASSWORD="<your-supabase-db-password>"
+   export JWT_SECRET="replace-this-before-production"
+   ```
+   
+   Or create `backend/.env`, then load it before running:
+   ```bash
+   cd backend
+   source .env
+   sh mvnw spring-boot:run
    ```
 2. Open terminal in `backend`:
    ```bash
@@ -62,15 +88,17 @@ CollabMatch
    ```
 3. Run the app:
    ```bash
-   mvnw.cmd spring-boot:run
+   source .env && sh mvnw spring-boot:run
    ```
 4. Backend runs on:
    ```text
    http://localhost:8080
    ```
 
-Prerequisite:
+Prerequisites:
 - `JAVA_HOME` must point to a Java 17 JDK directory.
+- For Supabase, use the database password from Project Settings > Database and keep `sslmode=require` in the JDBC URL.
+- Flyway will create and update the schema automatically on application startup.
 
 ## Steps to Run Web App
 
@@ -101,7 +129,7 @@ Prerequisite:
 
 Note:
 - Emulator uses `http://10.0.2.2:8080` to access host backend.
-- Flyway will auto-create the `users` table on first run.
+- Flyway manages the schema for `users`, `refresh_tokens`, `projects`, `join_requests`, and `project_members`.
 
 ## API Endpoints
 
@@ -176,6 +204,13 @@ All API endpoints return a consistent response envelope (aligned to the SDD):
 - Join teams and manage collaboration requests
 - Build project groups for creative and academic work
 
-## Note on PostgreSQL
+## Database Schema
 
-The backend now uses PostgreSQL with Flyway migrations and Spring Data JPA for persistence.
+The backend uses PostgreSQL-compatible migrations that work on both local Postgres and Supabase.
+
+Core tables:
+- `users`: account, auth, and profile basics (`bio`, `skills`)
+- `refresh_tokens`: persisted refresh tokens
+- `projects`: collaboration posts with owner, category, roles needed, and open/closed status
+- `join_requests`: request workflow with `PENDING`, `APPROVED`, and `REJECTED`
+- `project_members`: approved project memberships
