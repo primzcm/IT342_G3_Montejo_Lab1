@@ -70,7 +70,14 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Email or password is incorrect"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        boolean passwordMatches;
+        try {
+            passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+        } catch (IllegalArgumentException ex) {
+            throw new UnauthorizedException("Email or password is incorrect");
+        }
+
+        if (!passwordMatches) {
             throw new UnauthorizedException("Email or password is incorrect");
         }
 
