@@ -27,7 +27,10 @@ async function apiRequest(path, { method = "GET", body, token } = {}) {
           ? Object.values(details)[0]
           : null;
     const errorMessage = detailMessage || payload?.error?.message || "Request failed. Please try again.";
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload?.data ?? null;
@@ -50,6 +53,28 @@ export function loginUser(data) {
 export function fetchCurrentUser(token) {
   return apiRequest("/api/v1/user/me", {
     token
+  });
+}
+
+export function fetchProjects(token) {
+  return apiRequest("/api/v1/projects", {
+    token
+  });
+}
+
+export function createProject(token, data) {
+  return apiRequest("/api/v1/projects", {
+    method: "POST",
+    token,
+    body: data
+  });
+}
+
+export function requestJoinProject(token, projectId, data) {
+  return apiRequest(`/api/v1/projects/${projectId}/requests`, {
+    method: "POST",
+    token,
+    body: data
   });
 }
 
