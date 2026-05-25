@@ -155,6 +155,10 @@ function DashboardPage() {
     }
   }
 
+  function handleOpenProject(projectId) {
+    navigate(`/projects/${projectId}`);
+  }
+
   const categories = ["All", ...new Set(projects.map((project) => project.category))];
   const filteredProjects = projects.filter((project) => {
     const categoryMatches = selectedCategory === "All" || project.category === selectedCategory;
@@ -313,15 +317,21 @@ function DashboardPage() {
                 </div>
 
                 <div className="explorer-actions">
-                  <button type="button" className="explorer-secondary-button">View Detail</button>
+                  <button
+                    type="button"
+                    className="explorer-secondary-button"
+                    onClick={() => handleOpenProject(project.id)}
+                  >
+                    View Detail
+                  </button>
                   <button
                     type="button"
                     className="explorer-primary-button"
-                    disabled={project.owner || project.joinRequested || joiningProjectId === project.id}
-                    onClick={() => handleJoinProject(project.id)}
+                    disabled={!project.owner && (project.joinRequested || joiningProjectId === project.id)}
+                    onClick={() => (project.owner ? handleOpenProject(project.id) : handleJoinProject(project.id))}
                   >
                     {project.owner
-                      ? "Owner"
+                      ? "Manage"
                       : project.joinRequested
                         ? "Requested"
                         : joiningProjectId === project.id

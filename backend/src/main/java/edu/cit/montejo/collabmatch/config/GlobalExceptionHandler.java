@@ -2,6 +2,8 @@ package edu.cit.montejo.collabmatch.config;
 
 import edu.cit.montejo.collabmatch.dto.ApiResponse;
 import edu.cit.montejo.collabmatch.exception.ConflictException;
+import edu.cit.montejo.collabmatch.exception.ForbiddenException;
+import edu.cit.montejo.collabmatch.exception.NotFoundException;
 import edu.cit.montejo.collabmatch.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("AUTH-001", "Unauthorized", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("AUTH-003", "Insufficient permissions", ex.getMessage()));
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error("DB-001", "Resource not found", ex.getMessage()));
     }
 
     @ExceptionHandler(ConflictException.class)

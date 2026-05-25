@@ -62,6 +62,12 @@ export function fetchProjects(token) {
   });
 }
 
+export function fetchProjectDetail(token, projectId) {
+  return apiRequest(`/api/v1/projects/${projectId}`, {
+    token
+  });
+}
+
 export function createProject(token, data) {
   return apiRequest("/api/v1/projects", {
     method: "POST",
@@ -70,11 +76,46 @@ export function createProject(token, data) {
   });
 }
 
+export function updateProject(token, projectId, data) {
+  return apiRequest(`/api/v1/projects/${projectId}`, {
+    method: "PUT",
+    token,
+    body: data
+  });
+}
+
+export function deleteProject(token, projectId) {
+  return apiRequest(`/api/v1/projects/${projectId}`, {
+    method: "DELETE",
+    token
+  });
+}
+
 export function requestJoinProject(token, projectId, data) {
   return apiRequest(`/api/v1/projects/${projectId}/requests`, {
     method: "POST",
     token,
     body: data
+  });
+}
+
+export function fetchProjectRequests(token, projectId) {
+  return apiRequest(`/api/v1/projects/${projectId}/requests`, {
+    token
+  });
+}
+
+export function approveJoinRequest(token, requestId) {
+  return apiRequest(`/api/v1/requests/${requestId}/approve`, {
+    method: "PUT",
+    token
+  });
+}
+
+export function rejectJoinRequest(token, requestId) {
+  return apiRequest(`/api/v1/requests/${requestId}/reject`, {
+    method: "PUT",
+    token
   });
 }
 

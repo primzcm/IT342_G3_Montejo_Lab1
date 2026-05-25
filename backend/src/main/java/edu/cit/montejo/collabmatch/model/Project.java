@@ -58,6 +58,14 @@ public class Project {
         this.status = status;
     }
 
+    public void updateDetails(String title, String description, String category, String rolesNeeded, String status) {
+        this.title = title;
+        this.description = description;
+        this.category = category;
+        this.rolesNeeded = rolesNeeded;
+        this.status = status;
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

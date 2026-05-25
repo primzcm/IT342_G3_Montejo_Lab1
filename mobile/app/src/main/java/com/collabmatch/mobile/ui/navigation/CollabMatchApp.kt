@@ -1,14 +1,18 @@
 package com.collabmatch.mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import com.collabmatch.mobile.data.model.AuthPayload
 import com.collabmatch.mobile.data.repository.AuthRepository
+import com.collabmatch.mobile.ui.screen.CreateProjectScreen
 import com.collabmatch.mobile.ui.screen.DashboardScreen
 import com.collabmatch.mobile.ui.screen.LoginScreen
+import com.collabmatch.mobile.ui.screen.ProjectDetailScreen
 import com.collabmatch.mobile.ui.screen.RegisterScreen
 
 @Composable
@@ -45,9 +49,48 @@ fun CollabMatchApp(repository: AuthRepository, navController: NavHostController 
         composable(AppRoute.Dashboard.route) {
             DashboardScreen(
                 repository = repository,
+                onCreateProject = { navController.navigate(AppRoute.CreateProject.route) },
+                onOpenProject = { projectId ->
+                    navController.navigate(AppRoute.ProjectDetail.create(projectId))
+                },
                 onLoggedOut = {
                     navController.navigate(AppRoute.Login.route) {
                         popUpTo(AppRoute.Dashboard.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(AppRoute.CreateProject.route) {
+            CreateProjectScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() },
+                onProjectCreated = { projectId ->
+                    navController.navigate(AppRoute.ProjectDetail.create(projectId)) {
+                        popUpTo(AppRoute.CreateProject.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = AppRoute.ProjectDetail.route,
+            arguments = listOf(navArgument("projectId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getLong("projectId") ?: return@composable
+            ProjectDetailScreen(
+                repository = repository,
+                projectId = projectId,
+                onBack = { navController.popBackStack() },
+                onLoggedOut = {
+                    navController.navigate(AppRoute.Login.route) {
+                        popUpTo(AppRoute.Dashboard.route) { inclusive = true }
+                    }
+                },
+                onDeleted = {
+                    navController.navigate(AppRoute.Dashboard.route) {
+                        popUpTo(AppRoute.Dashboard.route)
+                        launchSingleTop = true
                     }
                 }
             )

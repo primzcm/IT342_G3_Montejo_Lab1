@@ -50,6 +50,16 @@ public class JoinRequest {
         this.message = message;
     }
 
+    public void approve() {
+        this.status = "APPROVED";
+        this.reviewedAt = Instant.now();
+    }
+
+    public void reject() {
+        this.status = "REJECTED";
+        this.reviewedAt = Instant.now();
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
