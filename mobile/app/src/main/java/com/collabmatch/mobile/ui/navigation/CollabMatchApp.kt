@@ -7,17 +7,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
-import com.collabmatch.mobile.data.model.AuthPayload
-import com.collabmatch.mobile.data.repository.AuthRepository
-import com.collabmatch.mobile.ui.screen.CreateProjectScreen
-import com.collabmatch.mobile.ui.screen.DashboardScreen
-import com.collabmatch.mobile.ui.screen.LoginScreen
-import com.collabmatch.mobile.ui.screen.ProjectDetailScreen
-import com.collabmatch.mobile.ui.screen.ProfileScreen
-import com.collabmatch.mobile.ui.screen.RegisterScreen
+import com.collabmatch.mobile.core.data.CollabMatchRepository
+import com.collabmatch.mobile.feature.auth.data.AuthPayload
+import com.collabmatch.mobile.feature.auth.ui.LoginScreen
+import com.collabmatch.mobile.feature.auth.ui.RegisterScreen
+import com.collabmatch.mobile.feature.profile.ui.ProfileScreen
+import com.collabmatch.mobile.feature.projects.ui.CreateProjectScreen
+import com.collabmatch.mobile.feature.projects.ui.DashboardScreen
+import com.collabmatch.mobile.feature.projects.ui.ProjectDetailScreen
 
 @Composable
-fun CollabMatchApp(repository: AuthRepository, navController: NavHostController = rememberNavController()) {
+fun CollabMatchApp(repository: CollabMatchRepository, navController: NavHostController = rememberNavController()) {
     val startDestination = if (repository.getAccessToken().isNullOrBlank()) AppRoute.Login.route else AppRoute.Dashboard.route
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -112,6 +112,6 @@ fun CollabMatchApp(repository: AuthRepository, navController: NavHostController 
     }
 }
 
-private fun onAuthenticated(repository: AuthRepository, payload: AuthPayload) {
+private fun onAuthenticated(repository: CollabMatchRepository, payload: AuthPayload) {
     repository.saveTokens(payload.accessToken, payload.refreshToken)
 }

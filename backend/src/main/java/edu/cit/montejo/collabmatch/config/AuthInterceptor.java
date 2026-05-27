@@ -1,8 +1,8 @@
 package edu.cit.montejo.collabmatch.config;
 
-import edu.cit.montejo.collabmatch.exception.UnauthorizedException;
-import edu.cit.montejo.collabmatch.model.User;
-import edu.cit.montejo.collabmatch.service.AuthService;
+import edu.cit.montejo.collabmatch.common.exception.UnauthorizedException;
+import edu.cit.montejo.collabmatch.user.User;
+import edu.cit.montejo.collabmatch.auth.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;

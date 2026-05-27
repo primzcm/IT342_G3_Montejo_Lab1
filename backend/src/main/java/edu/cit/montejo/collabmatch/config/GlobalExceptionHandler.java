@@ -1,10 +1,10 @@
 package edu.cit.montejo.collabmatch.config;
 
-import edu.cit.montejo.collabmatch.dto.ApiResponse;
-import edu.cit.montejo.collabmatch.exception.ConflictException;
-import edu.cit.montejo.collabmatch.exception.ForbiddenException;
-import edu.cit.montejo.collabmatch.exception.NotFoundException;
-import edu.cit.montejo.collabmatch.exception.UnauthorizedException;
+import edu.cit.montejo.collabmatch.common.api.ApiResponse;
+import edu.cit.montejo.collabmatch.common.exception.ConflictException;
+import edu.cit.montejo.collabmatch.common.exception.ForbiddenException;
+import edu.cit.montejo.collabmatch.common.exception.NotFoundException;
+import edu.cit.montejo.collabmatch.common.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
