@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/api";
 
@@ -35,7 +35,7 @@ function RegisterPage() {
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-page min-h-screen bg-ink px-6 py-10 text-slate-100 antialiased">
       <section className="card">
         <h1>Create your CollabMatch account</h1>
         <p>Build your profile and connect with teammates based on skills and interests.</p>

@@ -1,6 +1,7 @@
 package edu.cit.montejo.collabmatch.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 public class ProjectResponse {
     private final Long id;
@@ -8,11 +9,13 @@ public class ProjectResponse {
     private final String description;
     private final String category;
     private final String rolesNeeded;
+    private final List<String> requiredSkills;
     private final String status;
     private final Instant createdAt;
     private final Long ownerId;
     private final String ownerName;
     private final boolean owner;
+    private final boolean joined;
     private final boolean joinRequested;
 
     public ProjectResponse(
@@ -21,11 +24,13 @@ public class ProjectResponse {
             String description,
             String category,
             String rolesNeeded,
+            List<String> requiredSkills,
             String status,
             Instant createdAt,
             Long ownerId,
             String ownerName,
             boolean owner,
+            boolean joined,
             boolean joinRequested
     ) {
         this.id = id;
@@ -33,11 +38,13 @@ public class ProjectResponse {
         this.description = description;
         this.category = category;
         this.rolesNeeded = rolesNeeded;
+        this.requiredSkills = requiredSkills;
         this.status = status;
         this.createdAt = createdAt;
         this.ownerId = ownerId;
         this.ownerName = ownerName;
         this.owner = owner;
+        this.joined = joined;
         this.joinRequested = joinRequested;
     }
 
@@ -61,6 +68,10 @@ public class ProjectResponse {
         return rolesNeeded;
     }
 
+    public List<String> getRequiredSkills() {
+        return requiredSkills;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -79,6 +90,10 @@ public class ProjectResponse {
 
     public boolean isOwner() {
         return owner;
+    }
+
+    public boolean isJoined() {
+        return joined;
     }
 
     public boolean isJoinRequested() {

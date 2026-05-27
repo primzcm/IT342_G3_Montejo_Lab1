@@ -13,6 +13,7 @@ import com.collabmatch.mobile.ui.screen.CreateProjectScreen
 import com.collabmatch.mobile.ui.screen.DashboardScreen
 import com.collabmatch.mobile.ui.screen.LoginScreen
 import com.collabmatch.mobile.ui.screen.ProjectDetailScreen
+import com.collabmatch.mobile.ui.screen.ProfileScreen
 import com.collabmatch.mobile.ui.screen.RegisterScreen
 
 @Composable
@@ -49,6 +50,7 @@ fun CollabMatchApp(repository: AuthRepository, navController: NavHostController 
         composable(AppRoute.Dashboard.route) {
             DashboardScreen(
                 repository = repository,
+                onOpenProfile = { navController.navigate(AppRoute.Profile.route) },
                 onCreateProject = { navController.navigate(AppRoute.CreateProject.route) },
                 onOpenProject = { projectId ->
                     navController.navigate(AppRoute.ProjectDetail.create(projectId))
@@ -68,6 +70,18 @@ fun CollabMatchApp(repository: AuthRepository, navController: NavHostController 
                 onProjectCreated = { projectId ->
                     navController.navigate(AppRoute.ProjectDetail.create(projectId)) {
                         popUpTo(AppRoute.CreateProject.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(AppRoute.Profile.route) {
+            ProfileScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() },
+                onLoggedOut = {
+                    navController.navigate(AppRoute.Login.route) {
+                        popUpTo(AppRoute.Dashboard.route) { inclusive = true }
                     }
                 }
             )

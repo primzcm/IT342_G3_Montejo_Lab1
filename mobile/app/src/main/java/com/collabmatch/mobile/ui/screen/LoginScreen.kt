@@ -1,12 +1,8 @@
 package com.collabmatch.mobile.ui.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,10 +11,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.collabmatch.mobile.data.model.AuthPayload
 import com.collabmatch.mobile.data.repository.AuthRepository
 import com.collabmatch.mobile.data.repository.RepoResult
+import com.collabmatch.mobile.ui.theme.AppFormScreen
+import com.collabmatch.mobile.ui.theme.AppPrimaryButton
+import com.collabmatch.mobile.ui.theme.AppSecondaryButton
+import com.collabmatch.mobile.ui.theme.AppTextField
 import kotlinx.coroutines.launch
 
 @Composable
@@ -33,31 +35,41 @@ fun LoginScreen(
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    AppFormScreen(
+        title = "Welcome back",
+        subtitle = "Sign in to continue."
     ) {
-        Text("Login to CollabMatch")
+        Text(
+            text = "Login",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
-        OutlinedTextField(
+        AppTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Email",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Password",
+            visualTransformation = PasswordVisualTransformation()
         )
 
-        error?.let { Text(it) }
+        if (!error.isNullOrBlank()) {
+            Text(
+                text = error ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
 
-        Button(
+        AppPrimaryButton(
+            text = if (loading) "Signing in..." else "Login",
             onClick = {
                 loading = true
                 error = null
@@ -69,14 +81,14 @@ fun LoginScreen(
                     loading = false
                 }
             },
-            enabled = !loading,
+            enabled = !loading && email.isNotBlank() && password.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (loading) "Signing in..." else "Login")
-        }
+        )
 
-        Button(onClick = onRegisterClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Create account")
-        }
+        AppSecondaryButton(
+            text = "Create account",
+            onClick = onRegisterClick,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

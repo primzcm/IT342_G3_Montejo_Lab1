@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "react-router-dom";
 
 const featuredProjects = [
@@ -34,7 +35,7 @@ function LandingPage() {
   const loginHref = hasToken ? "/dashboard" : "/login";
 
   return (
-    <main className="landing-page">
+    <main className="landing-page min-h-screen bg-ink text-slate-100">
       <header className="landing-shell">
         <nav className="landing-nav">
           <div className="brand-mark">CollabMatch</div>

@@ -1,6 +1,7 @@
 package edu.cit.montejo.collabmatch.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -8,11 +9,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
+import java.util.ArrayList;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name = "projects")
@@ -37,6 +42,10 @@ public class Project {
 
     @Column(name = "roles_needed", nullable = false, columnDefinition = "TEXT")
     private String rolesNeeded;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("positionIndex asc")
+    private List<ProjectSkill> requiredSkills = new ArrayList<>();
 
     @Column(nullable = false, length = 20)
     private String status;
@@ -102,6 +111,10 @@ public class Project {
         return rolesNeeded;
     }
 
+    public List<ProjectSkill> getRequiredSkills() {
+        return requiredSkills;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -112,5 +125,13 @@ public class Project {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void replaceRequiredSkills(List<String> skills) {
+        requiredSkills.clear();
+        for (int index = 0; index < skills.size(); index++) {
+            requiredSkills.add(new ProjectSkill(this, skills.get(index), index));
+        }
+        rolesNeeded = String.join(", ", skills);
     }
 }

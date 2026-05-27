@@ -9,11 +9,13 @@ public class ProjectDetailResponse {
     private final String description;
     private final String category;
     private final String rolesNeeded;
+    private final List<String> requiredSkills;
     private final String status;
     private final Instant createdAt;
     private final Long ownerId;
     private final String ownerName;
     private final boolean owner;
+    private final boolean joined;
     private final boolean joinRequested;
     private final List<ProjectMemberResponse> members;
 
@@ -23,11 +25,13 @@ public class ProjectDetailResponse {
             String description,
             String category,
             String rolesNeeded,
+            List<String> requiredSkills,
             String status,
             Instant createdAt,
             Long ownerId,
             String ownerName,
             boolean owner,
+            boolean joined,
             boolean joinRequested,
             List<ProjectMemberResponse> members
     ) {
@@ -36,11 +40,13 @@ public class ProjectDetailResponse {
         this.description = description;
         this.category = category;
         this.rolesNeeded = rolesNeeded;
+        this.requiredSkills = requiredSkills;
         this.status = status;
         this.createdAt = createdAt;
         this.ownerId = ownerId;
         this.ownerName = ownerName;
         this.owner = owner;
+        this.joined = joined;
         this.joinRequested = joinRequested;
         this.members = members;
     }
@@ -65,6 +71,10 @@ public class ProjectDetailResponse {
         return rolesNeeded;
     }
 
+    public List<String> getRequiredSkills() {
+        return requiredSkills;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -83,6 +93,10 @@ public class ProjectDetailResponse {
 
     public boolean isOwner() {
         return owner;
+    }
+
+    public boolean isJoined() {
+        return joined;
     }
 
     public boolean isJoinRequested() {

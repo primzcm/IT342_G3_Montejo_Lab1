@@ -3,23 +3,20 @@ package com.collabmatch.mobile.ui.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,8 +30,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.collabmatch.mobile.data.model.JoinRequestDto
 import com.collabmatch.mobile.data.model.ProjectDetailDto
+import com.collabmatch.mobile.data.model.ProjectMessageDto
 import com.collabmatch.mobile.data.repository.AuthRepository
 import com.collabmatch.mobile.data.repository.RepoResult
+import com.collabmatch.mobile.ui.theme.AppBadge
+import com.collabmatch.mobile.ui.theme.AppCard
+import com.collabmatch.mobile.ui.theme.AppDangerButton
+import com.collabmatch.mobile.ui.theme.AppGradientFrame
+import com.collabmatch.mobile.ui.theme.AppMiniButton
+import com.collabmatch.mobile.ui.theme.AppPrimaryButton
+import com.collabmatch.mobile.ui.theme.AppSecondaryButton
+import com.collabmatch.mobile.ui.theme.AppSectionTabs
+import com.collabmatch.mobile.ui.theme.AppTextField
+import com.collabmatch.mobile.ui.theme.AppTopBar
+import com.collabmatch.mobile.ui.theme.Gold
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -43,7 +52,6 @@ import java.time.format.DateTimeFormatter
 private val displayFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a").withZone(ZoneId.systemDefault())
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectDetailScreen(
     repository: AuthRepository,
@@ -52,15 +60,25 @@ fun ProjectDetailScreen(
     onLoggedOut: () -> Unit,
     onDeleted: () -> Unit
 ) {
+    if (repository.getAccessToken().isNullOrBlank()) {
+        LaunchedEffect(Unit) {
+            onLoggedOut()
+        }
+        return
+    }
+
     val scope = rememberCoroutineScope()
     var project by remember { mutableStateOf<ProjectDetailDto?>(null) }
     var requests by remember { mutableStateOf<List<JoinRequestDto>>(emptyList()) }
+    var messages by remember { mutableStateOf<List<ProjectMessageDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var requestError by remember { mutableStateOf<String?>(null) }
+    var messageError by remember { mutableStateOf<String?>(null) }
     var joining by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
+    var postingMessage by remember { mutableStateOf(false) }
     var actingRequestId by remember { mutableStateOf<Long?>(null) }
     var editing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -70,6 +88,7 @@ fun ProjectDetailScreen(
     var category by remember { mutableStateOf("") }
     var rolesNeeded by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("OPEN") }
+    var messageDraft by remember { mutableStateOf("") }
 
     fun populateForm(detail: ProjectDetailDto) {
         title = detail.title
@@ -82,6 +101,8 @@ fun ProjectDetailScreen(
     suspend fun loadProject() {
         loading = true
         error = null
+        requestError = null
+        messageError = null
 
         when (val result = repository.fetchProjectDetail(projectId)) {
             is RepoResult.Success -> {
@@ -90,14 +111,41 @@ fun ProjectDetailScreen(
                 if (result.data.owner) {
                     when (val requestResult = repository.fetchProjectRequests(projectId)) {
                         is RepoResult.Success -> requests = requestResult.data
-                        is RepoResult.Error -> requestError = requestResult.message
+                        is RepoResult.Error -> {
+                            if (repository.isAuthenticationError(requestResult.message)) {
+                                onLoggedOut()
+                                return
+                            }
+                            requestError = requestResult.message
+                        }
                     }
                 } else {
                     requests = emptyList()
                 }
+
+                if (result.data.owner || result.data.joined) {
+                    when (val messageResult = repository.fetchProjectMessages(projectId)) {
+                        is RepoResult.Success -> messages = messageResult.data
+                        is RepoResult.Error -> {
+                            if (repository.isAuthenticationError(messageResult.message)) {
+                                onLoggedOut()
+                                return
+                            }
+                            messageError = messageResult.message
+                        }
+                    }
+                } else {
+                    messages = emptyList()
+                }
             }
 
-            is RepoResult.Error -> error = result.message
+            is RepoResult.Error -> {
+                if (repository.isAuthenticationError(result.message)) {
+                    onLoggedOut()
+                    return
+                }
+                error = result.message
+            }
         }
 
         loading = false
@@ -107,39 +155,16 @@ fun ProjectDetailScreen(
         loadProject()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(project?.title ?: "Project Detail") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back")
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                repository.logout()
-                                onLoggedOut()
-                            }
-                        }
-                    ) {
-                        Text("Logout")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    AppGradientFrame {
         when {
             loading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .systemBarsPadding(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Gold)
                 }
             }
 
@@ -147,10 +172,21 @@ fun ProjectDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .systemBarsPadding(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(error ?: "Unable to load project")
+                    AppCard {
+                        Text(
+                            text = error ?: "Unable to load project",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        AppSecondaryButton(
+                            text = "Back",
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
@@ -159,26 +195,78 @@ fun ProjectDetailScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .systemBarsPadding(),
+                    contentPadding = PaddingValues(bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
                     item {
-                        ProjectDetailSummaryCard(currentProject)
+                        AppTopBar(
+                            title = "Project",
+                            badge = if (currentProject.owner) "Owner View" else "Project Detail",
+                            meta = "${currentProject.status} • ${currentProject.category}",
+                            onBack = onBack,
+                            actions = {
+                                AppMiniButton(
+                                    text = "Logout",
+                                    onClick = {
+                                        scope.launch {
+                                            repository.logout()
+                                            onLoggedOut()
+                                        }
+                                    }
+                                )
+                            }
+                        )
+                    }
+
+                    item {
+                        AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                AppBadge(currentProject.status)
+                                AppBadge(currentProject.category)
+                            }
+
+                            Text(
+                                text = currentProject.title,
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = currentProject.description,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            DetailMetaRow(
+                                "Owner",
+                                currentProject.ownerName,
+                                "Skills Needed",
+                                currentProject.requiredSkills.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                                    ?: currentProject.rolesNeeded
+                            )
+                            DetailMetaRow("Created", formatTimestamp(currentProject.createdAt), "Members", currentProject.members.size.toString())
+                        }
                     }
 
                     if (!error.isNullOrBlank()) {
                         item {
-                            Text(
-                                text = error ?: "",
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                Text(
+                                    text = error ?: "",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
 
                     if (currentProject.owner) {
                         item {
-                            OwnerActionsCard(
+                            OwnerControlsCard(
                                 editing = editing,
                                 saving = saving,
                                 deleting = deleting,
@@ -212,7 +300,13 @@ fun ProjectDetailScreen(
                                                 editing = false
                                             }
 
-                                            is RepoResult.Error -> error = result.message
+                                            is RepoResult.Error -> {
+                                                if (repository.isAuthenticationError(result.message)) {
+                                                    onLoggedOut()
+                                                    return@launch
+                                                }
+                                                error = result.message
+                                            }
                                         }
                                         saving = false
                                     }
@@ -220,31 +314,165 @@ fun ProjectDetailScreen(
                                 onDelete = { showDeleteDialog = true }
                             )
                         }
-                    } else {
+                    } else if (!currentProject.joined) {
                         item {
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        joining = true
-                                        error = null
-                                        when (val result = repository.requestToJoinProject(projectId)) {
-                                            is RepoResult.Success -> loadProject()
-                                            is RepoResult.Error -> error = result.message
-                                        }
-                                        joining = false
-                                    }
-                                },
-                                enabled = !currentProject.joinRequested && currentProject.status == "OPEN" && !joining,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
                                 Text(
-                                    when {
-                                        currentProject.joinRequested -> "Join Requested"
+                                    text = "Join this project",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "Send a join request.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                AppPrimaryButton(
+                                    text = when {
+                                        currentProject.joinRequested -> "Requested"
                                         joining -> "Submitting..."
                                         currentProject.status != "OPEN" -> "Project Closed"
                                         else -> "Request to Join"
-                                    }
+                                    },
+                                    onClick = {
+                                        scope.launch {
+                                            joining = true
+                                            error = null
+                                            when (val result = repository.requestToJoinProject(projectId)) {
+                                                is RepoResult.Success -> loadProject()
+                                                is RepoResult.Error -> {
+                                                    if (repository.isAuthenticationError(result.message)) {
+                                                        onLoggedOut()
+                                                        return@launch
+                                                    }
+                                                    error = result.message
+                                                }
+                                            }
+                                            joining = false
+                                        }
+                                    },
+                                    enabled = !currentProject.joinRequested && currentProject.status == "OPEN" && !joining,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+                        }
+                    } else {
+                        item {
+                            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                Text(
+                                    text = "You are on this team",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "Your request was approved. Track the roster and project details here.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (currentProject.owner || currentProject.joined) {
+                        item {
+                            DetailSectionCard(
+                                title = "Project Board",
+                                subtitle = "Share introductions, updates, and quick coordination notes with the team.",
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            ) {
+                                AppTextField(
+                                    value = messageDraft,
+                                    onValueChange = { if (it.length <= 2000) messageDraft = it },
+                                    label = "New message",
+                                    minLines = 4
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${messageDraft.trim().length}/2000",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    AppPrimaryButton(
+                                        text = if (postingMessage) "Posting..." else "Post Message",
+                                        onClick = {
+                                            scope.launch {
+                                                if (messageDraft.trim().isEmpty()) {
+                                                    return@launch
+                                                }
+                                                postingMessage = true
+                                                messageError = null
+                                                when (val result = repository.createProjectMessage(projectId, messageDraft)) {
+                                                    is RepoResult.Success -> {
+                                                        messageDraft = ""
+                                                        when (val messagesResult = repository.fetchProjectMessages(projectId)) {
+                                                            is RepoResult.Success -> messages = messagesResult.data
+                                                            is RepoResult.Error -> {
+                                                                if (repository.isAuthenticationError(messagesResult.message)) {
+                                                                    onLoggedOut()
+                                                                    return@launch
+                                                                }
+                                                                messageError = messagesResult.message
+                                                            }
+                                                        }
+                                                    }
+
+                                                    is RepoResult.Error -> {
+                                                        if (repository.isAuthenticationError(result.message)) {
+                                                            onLoggedOut()
+                                                            return@launch
+                                                        }
+                                                        messageError = result.message
+                                                    }
+                                                }
+                                                postingMessage = false
+                                            }
+                                        },
+                                        enabled = !postingMessage && messageDraft.trim().isNotEmpty(),
+                                        modifier = Modifier.weight(0.45f, fill = false)
+                                    )
+                                }
+
+                                if (!messageError.isNullOrBlank()) {
+                                    Text(
+                                        text = messageError ?: "",
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+
+                                if (messages.isEmpty()) {
+                                    Text(
+                                        text = "No messages yet. Start the conversation with a short introduction or update.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        messages.forEach { message ->
+                                            AppCard {
+                                                Text(
+                                                    text = message.authorName,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                                Text(
+                                                    text = formatTimestamp(message.createdAt),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = message.content,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -252,24 +480,29 @@ fun ProjectDetailScreen(
                     item {
                         DetailSectionCard(
                             title = "Project Members",
-                            subtitle = "Approved collaborators on this project."
+                            subtitle = "Approved collaborators attached to this project.",
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         ) {
                             if (currentProject.members.isEmpty()) {
-                                Text("No members yet.")
+                                Text(
+                                    text = "No members yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     currentProject.members.forEach { member ->
-                                        Card {
-                                            Column(
-                                                modifier = Modifier.padding(14.dp),
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Text(member.name, fontWeight = FontWeight.SemiBold)
-                                                Text(
-                                                    text = "Joined ${formatTimestamp(member.joinedAt)}",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
+                                        AppCard {
+                                            Text(
+                                                text = member.name,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onBackground
+                                            )
+                                            Text(
+                                                text = "Joined ${formatTimestamp(member.joinedAt)}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                     }
                                 }
@@ -281,17 +514,23 @@ fun ProjectDetailScreen(
                         item {
                             DetailSectionCard(
                                 title = "Join Requests",
-                                subtitle = "Approve or reject incoming requests."
+                                subtitle = "Approve or reject incoming requests.",
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             ) {
                                 if (!requestError.isNullOrBlank()) {
                                     Text(
                                         text = requestError ?: "",
-                                        color = MaterialTheme.colorScheme.error
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
 
                                 if (requests.isEmpty()) {
-                                    Text("No join requests yet.")
+                                    Text(
+                                        text = "No join requests yet.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 } else {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         requests.forEach { request ->
@@ -304,7 +543,13 @@ fun ProjectDetailScreen(
                                                         requestError = null
                                                         when (val result = repository.approveJoinRequest(request.id)) {
                                                             is RepoResult.Success -> loadProject()
-                                                            is RepoResult.Error -> requestError = result.message
+                                                            is RepoResult.Error -> {
+                                                                if (repository.isAuthenticationError(result.message)) {
+                                                                    onLoggedOut()
+                                                                    return@launch
+                                                                }
+                                                                requestError = result.message
+                                                            }
                                                         }
                                                         actingRequestId = null
                                                     }
@@ -315,7 +560,13 @@ fun ProjectDetailScreen(
                                                         requestError = null
                                                         when (val result = repository.rejectJoinRequest(request.id)) {
                                                             is RepoResult.Success -> loadProject()
-                                                            is RepoResult.Error -> requestError = result.message
+                                                            is RepoResult.Error -> {
+                                                                if (repository.isAuthenticationError(result.message)) {
+                                                                    onLoggedOut()
+                                                                    return@launch
+                                                                }
+                                                                requestError = result.message
+                                                            }
                                                         }
                                                         actingRequestId = null
                                                     }
@@ -336,7 +587,7 @@ fun ProjectDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             confirmButton = {
-                Button(
+                TextButton(
                     onClick = {
                         scope.launch {
                             showDeleteDialog = false
@@ -352,49 +603,23 @@ fun ProjectDetailScreen(
                         }
                     }
                 ) {
-                    Text("Delete")
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             title = { Text("Delete project?") },
-            text = { Text("This removes the project, join requests, and members.") }
+            text = { Text("This removes the project, join requests, and members.") },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
 
 @Composable
-private fun ProjectDetailSummaryCard(project: ProjectDetailDto) {
-    Card {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(project.category, color = MaterialTheme.colorScheme.primary)
-                Text(project.status, fontWeight = FontWeight.SemiBold)
-            }
-            Text(
-                text = project.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(project.description, style = MaterialTheme.typography.bodyMedium)
-            Text("Owner: ${project.ownerName}", style = MaterialTheme.typography.bodySmall)
-            Text("Roles: ${project.rolesNeeded}", style = MaterialTheme.typography.bodySmall)
-            Text("Created: ${formatTimestamp(project.createdAt)}", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun OwnerActionsCard(
+private fun OwnerControlsCard(
     editing: Boolean,
     saving: Boolean,
     deleting: Boolean,
@@ -414,71 +639,50 @@ private fun OwnerActionsCard(
 ) {
     DetailSectionCard(
         title = "Owner Controls",
-        subtitle = "Edit project details or remove the project."
+        subtitle = "Edit the brief, update the status, or remove the project.",
+        modifier = Modifier.padding(horizontal = 20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (editing) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = onTitleChange,
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = onCategoryChange,
-                    label = { Text("Category") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = rolesNeeded,
-                    onValueChange = onRolesNeededChange,
-                    label = { Text("Roles needed") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = status,
-                    onValueChange = { onStatusChange(it.uppercase()) },
-                    label = { Text("Status (OPEN or CLOSED)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = onDescriptionChange,
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 4
-                )
-            }
+        if (editing) {
+            AppTextField(value = title, onValueChange = onTitleChange, label = "Project title")
+            AppTextField(value = category, onValueChange = onCategoryChange, label = "Category")
+            AppTextField(value = rolesNeeded, onValueChange = onRolesNeededChange, label = "Skills / roles needed")
+            AppSectionTabs(
+                options = listOf("OPEN", "CLOSED"),
+                selected = status,
+                onSelect = onStatusChange
+            )
+            AppTextField(
+                value = description,
+                onValueChange = onDescriptionChange,
+                label = "Description",
+                minLines = 4
+            )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = onEditToggle,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (editing) "Cancel Edit" else "Edit Project")
-                }
-                Button(
-                    onClick = onDelete,
-                    enabled = !deleting,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (deleting) "Deleting..." else "Delete")
-                }
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AppSecondaryButton(
+                text = if (editing) "Cancel Edit" else "Edit Project",
+                onClick = onEditToggle,
+                modifier = Modifier.weight(1f)
+            )
+            AppDangerButton(
+                text = if (deleting) "Deleting..." else "Delete",
+                onClick = onDelete,
+                enabled = !deleting,
+                modifier = Modifier.weight(1f)
+            )
+        }
 
-            if (editing) {
-                Button(
-                    onClick = onSave,
-                    enabled = !saving,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (saving) "Saving..." else "Save Changes")
-                }
-            }
+        if (editing) {
+            AppPrimaryButton(
+                text = if (saving) "Saving..." else "Save Changes",
+                onClick = onSave,
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -490,37 +694,46 @@ private fun JoinRequestCard(
     onApprove: () -> Unit,
     onReject: () -> Unit
 ) {
-    Card {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(request.requesterName, fontWeight = FontWeight.SemiBold)
-            Text(request.message ?: "No message provided.", style = MaterialTheme.typography.bodyMedium)
-            Text("Status: ${request.status}", style = MaterialTheme.typography.bodySmall)
-            if (request.reviewedAt != null) {
-                Text("Reviewed: ${formatTimestamp(request.reviewedAt)}", style = MaterialTheme.typography.bodySmall)
-            }
-            if (request.status == "PENDING") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onApprove,
-                        enabled = !acting,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(if (acting) "Saving..." else "Approve")
-                    }
-                    Button(
-                        onClick = onReject,
-                        enabled = !acting,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Reject")
-                    }
-                }
+    AppCard {
+        Text(
+            text = request.requesterName,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = request.message ?: "No message provided.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Status: ${request.status}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (request.reviewedAt != null) {
+            Text(
+                text = "Reviewed: ${formatTimestamp(request.reviewedAt)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (request.status == "PENDING") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AppPrimaryButton(
+                    text = if (acting) "Saving..." else "Approve",
+                    onClick = onApprove,
+                    enabled = !acting,
+                    modifier = Modifier.weight(1f)
+                )
+                AppSecondaryButton(
+                    text = "Reject",
+                    onClick = onReject,
+                    enabled = !acting,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -530,16 +743,42 @@ private fun JoinRequestCard(
 private fun DetailSectionCard(
     title: String,
     subtitle: String,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Card {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-            content()
+    AppCard(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        content()
+    }
+}
+
+@Composable
+private fun DetailMetaRow(
+    leftLabel: String,
+    leftValue: String,
+    rightLabel: String,
+    rightValue: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AppCard(modifier = Modifier.weight(1f)) {
+            Text(leftLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(leftValue, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+        }
+        AppCard(modifier = Modifier.weight(1f)) {
+            Text(rightLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(rightValue, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }

@@ -1,18 +1,21 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   approveJoinRequest,
+  createProjectMessage,
   deleteProject,
   fetchCurrentUser,
   fetchProjectDetail,
+  fetchProjectMessages,
   fetchProjectRequests,
   logoutUser,
   rejectJoinRequest,
   requestJoinProject,
   updateProject
 } from "../services/api";
+import { parseSkills } from "../utils/projectSkills";
 
-function createFormState(project) {
+function createFormState(project = null) {
   return {
     title: project?.title || "",
     description: project?.description || "",
@@ -31,15 +34,19 @@ function ProjectDetailPage() {
   const [user, setUser] = useState(null);
   const [project, setProject] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [requestError, setRequestError] = useState("");
+  const [messageError, setMessageError] = useState("");
   const [joining, setJoining] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [postingMessage, setPostingMessage] = useState(false);
   const [actingRequestId, setActingRequestId] = useState(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editForm, setEditForm] = useState(createFormState());
+  const [messageDraft, setMessageDraft] = useState("");
 
   useEffect(() => {
     if (!accessToken) {
@@ -61,6 +68,13 @@ function ProjectDetailPage() {
         if (detail.owner) {
           const requestList = await fetchProjectRequests(accessToken, projectId);
           setRequests(requestList);
+        }
+
+        if (detail.owner || detail.joined) {
+          const projectMessages = await fetchProjectMessages(accessToken, projectId);
+          setMessages(projectMessages);
+        } else {
+          setMessages([]);
         }
       } catch (err) {
         if (err.status === 401) {
@@ -88,6 +102,13 @@ function ProjectDetailPage() {
     if (includeRequests && detail.owner) {
       const requestList = await fetchProjectRequests(accessToken, projectId);
       setRequests(requestList);
+    }
+
+    if (detail.owner || detail.joined) {
+      const projectMessages = await fetchProjectMessages(accessToken, projectId);
+      setMessages(projectMessages);
+    } else {
+      setMessages([]);
     }
   }
 
@@ -125,7 +146,10 @@ function ProjectDetailPage() {
     try {
       setSaving(true);
       setError("");
-      await updateProject(accessToken, projectId, editForm);
+      await updateProject(accessToken, projectId, {
+        ...editForm,
+        requiredSkills: parseSkills(editForm.rolesNeeded)
+      });
       await reloadProject();
       setShowEditForm(false);
     } catch (err) {
@@ -170,6 +194,31 @@ function ProjectDetailPage() {
     }
   }
 
+  async function handlePostMessage(event) {
+    event.preventDefault();
+
+    if (!messageDraft.trim()) {
+      return;
+    }
+
+    try {
+      setPostingMessage(true);
+      setMessageError("");
+      await createProjectMessage(accessToken, projectId, { content: messageDraft.trim() });
+      setMessageDraft("");
+      const projectMessages = await fetchProjectMessages(accessToken, projectId);
+      setMessages(projectMessages);
+    } catch (err) {
+      setMessageError(err.message);
+    } finally {
+      setPostingMessage(false);
+    }
+  }
+
+  function handleOpenProfile() {
+    navigate("/profile");
+  }
+
   if (loading) {
     return (
       <main className="dashboard-page">
@@ -190,19 +239,24 @@ function ProjectDetailPage() {
   }
 
   return (
-    <main className="project-detail-page">
+    <main className="project-detail-page min-h-screen bg-ink text-slate-100 antialiased">
       <header className="dashboard-topbar">
-        <div className="dashboard-brand">CollabMatch</div>
-        <nav className="dashboard-topnav">
-          <button type="button" className="detail-nav-button is-active" onClick={() => navigate("/dashboard")}>
-            Project Explorer
-          </button>
-          <button type="button" className="detail-nav-button" onClick={() => navigate("/dashboard")}>
-            Dashboard
-          </button>
-        </nav>
+        <div className="dashboard-topbar-copy">
+          <div className="dashboard-brand">CollabMatch</div>
+          <div className="dashboard-topbar-summary">
+            <span className="dashboard-topbar-pill">{project.owner ? "Owner View" : "Project Detail"}</span>
+            <p>
+              {project.status}
+              <span>•</span>
+              {project.category}
+            </p>
+          </div>
+        </div>
         <div className="dashboard-top-actions">
-          <button type="button" className="icon-button dashboard-avatar" aria-label="Account menu">
+          <button type="button" className="topbar-action-button" onClick={() => navigate("/dashboard")}>
+            Back to Dashboard
+          </button>
+          <button type="button" className="icon-button dashboard-avatar" aria-label="Open profile" onClick={handleOpenProfile}>
             {user.firstname?.[0]}{user.lastname?.[0]}
           </button>
         </div>
@@ -236,6 +290,14 @@ function ProjectDetailPage() {
                   {deleting ? "Deleting..." : "Delete Project"}
                 </button>
               </>
+            ) : project.joined ? (
+              <button
+                type="button"
+                className="explorer-primary-button"
+                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+              >
+                Joined Project
+              </button>
             ) : (
               <button
                 type="button"
@@ -313,6 +375,65 @@ function ProjectDetailPage() {
             </div>
           </article>
         </section>
+
+        {!project.owner && project.joined ? (
+          <section className="detail-panel-card">
+            <div className="detail-panel-heading">
+              <h2>Your Membership</h2>
+              <p>Your join request was approved. You are now part of this project team.</p>
+            </div>
+          </section>
+        ) : null}
+
+        {project.owner || project.joined ? (
+          <section className="detail-panel-card">
+            <div className="detail-panel-heading">
+              <h2>Project Board</h2>
+              <p>Post introductions, coordination notes, or progress updates for the team.</p>
+            </div>
+
+            <form className="project-message-form" onSubmit={handlePostMessage}>
+              <label>
+                New message
+                <textarea
+                  value={messageDraft}
+                  onChange={(event) => setMessageDraft(event.target.value)}
+                  rows={4}
+                  placeholder="Share an update, ask a question, or introduce yourself to the team."
+                  maxLength={2000}
+                  required
+                />
+              </label>
+              <div className="project-message-form-footer">
+                <span>{messageDraft.trim().length}/2000</span>
+                <button type="submit" className="explorer-primary-button" disabled={postingMessage || !messageDraft.trim()}>
+                  {postingMessage ? "Posting..." : "Post Message"}
+                </button>
+              </div>
+            </form>
+
+            {messageError ? <p className="dashboard-inline-error">{messageError}</p> : null}
+
+            <div className="project-message-list">
+              {messages.length > 0 ? (
+                messages.map((message) => (
+                  <article key={message.id} className="project-message-card">
+                    <div className="project-message-card-top">
+                      <strong>{message.authorName}</strong>
+                      <span>{new Date(message.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p>{message.content}</p>
+                  </article>
+                ))
+              ) : (
+                <div className="empty-panel-state">
+                  <strong>No messages yet</strong>
+                  <p>Start the conversation with a short introduction or project update.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : null}
 
         {project.owner ? (
           <section className="detail-panel-card detail-requests-card">
@@ -432,7 +553,7 @@ function ProjectDetailPage() {
                 <textarea
                   value={editForm.description}
                   onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
-                  rows="5"
+                  rows={5}
                   required
                 />
               </label>

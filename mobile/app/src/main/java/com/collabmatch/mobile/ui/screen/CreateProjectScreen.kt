@@ -5,16 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,9 +21,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.collabmatch.mobile.data.repository.AuthRepository
 import com.collabmatch.mobile.data.repository.RepoResult
+import com.collabmatch.mobile.ui.theme.AppCard
+import com.collabmatch.mobile.ui.theme.AppGradientFrame
+import com.collabmatch.mobile.ui.theme.AppMiniButton
+import com.collabmatch.mobile.ui.theme.AppPrimaryButton
+import com.collabmatch.mobile.ui.theme.AppTextField
+import com.collabmatch.mobile.ui.theme.AppTopBar
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProjectScreen(
     repository: AuthRepository,
@@ -43,92 +43,88 @@ fun CreateProjectScreen(
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Create Project") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    AppGradientFrame {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .systemBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = "Publish a collaboration brief from mobile.",
-                style = MaterialTheme.typography.bodyMedium
+            AppTopBar(
+                title = "New Project",
+                badge = "Create",
+                meta = "Publish a collaboration post",
+                onBack = onBack,
+                actions = {
+                    AppMiniButton(text = "Cancel", onClick = onBack)
+                }
             )
 
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = category,
-                onValueChange = { category = it },
-                label = { Text("Category") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = rolesNeeded,
-                onValueChange = { rolesNeeded = it },
-                label = { Text("Roles needed") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 5
-            )
-
-            if (!error.isNullOrBlank()) {
+            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Text(
-                    text = error ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    text = "Project details",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-            }
 
-            Button(
-                onClick = {
-                    loading = true
-                    error = null
-                    scope.launch {
-                        when (
-                            val result = repository.createProject(
-                                title = title.trim(),
-                                description = description.trim(),
-                                category = category.trim(),
-                                rolesNeeded = rolesNeeded.trim()
-                            )
-                        ) {
-                            is RepoResult.Success -> onProjectCreated(result.data.id)
-                            is RepoResult.Error -> error = result.message
+                AppTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = "Project title"
+                )
+                AppTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = "Category"
+                )
+                AppTextField(
+                    value = rolesNeeded,
+                    onValueChange = { rolesNeeded = it },
+                    label = "Skills or roles needed"
+                )
+                AppTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = "Description",
+                    minLines = 5
+                )
+
+                if (!error.isNullOrBlank()) {
+                    Text(
+                        text = error ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                AppPrimaryButton(
+                    text = if (loading) "Publishing..." else "Publish Project",
+                    onClick = {
+                        loading = true
+                        error = null
+                        scope.launch {
+                            when (
+                                val result = repository.createProject(
+                                    title = title.trim(),
+                                    description = description.trim(),
+                                    category = category.trim(),
+                                    rolesNeeded = rolesNeeded.trim()
+                                )
+                            ) {
+                                is RepoResult.Success -> onProjectCreated(result.data.id)
+                                is RepoResult.Error -> error = result.message
+                            }
+                            loading = false
                         }
-                        loading = false
-                    }
-                },
-                enabled = !loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (loading) "Publishing..." else "Create Project")
+                    },
+                    enabled = !loading &&
+                        title.isNotBlank() &&
+                        description.isNotBlank() &&
+                        category.isNotBlank() &&
+                        rolesNeeded.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

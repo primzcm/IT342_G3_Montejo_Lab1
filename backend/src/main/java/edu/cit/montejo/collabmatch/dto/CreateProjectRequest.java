@@ -1,7 +1,10 @@
 package edu.cit.montejo.collabmatch.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 public class CreateProjectRequest {
     @NotBlank(message = "Title is required")
@@ -19,6 +22,9 @@ public class CreateProjectRequest {
     @NotBlank(message = "Roles needed is required")
     @Size(max = 5000, message = "Roles needed must be at most 5000 characters")
     private String rolesNeeded;
+
+    @NotEmpty(message = "Required skills are required")
+    private List<@NotBlank(message = "Skill cannot be blank") @Size(max = 120, message = "Skill must be at most 120 characters") String> requiredSkills;
 
     public String getTitle() {
         return title;
@@ -50,5 +56,13 @@ public class CreateProjectRequest {
 
     public void setRolesNeeded(String rolesNeeded) {
         this.rolesNeeded = rolesNeeded;
+    }
+
+    public List<String> getRequiredSkills() {
+        return requiredSkills;
+    }
+
+    public void setRequiredSkills(List<String> requiredSkills) {
+        this.requiredSkills = requiredSkills;
     }
 }

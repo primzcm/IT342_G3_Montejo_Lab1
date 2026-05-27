@@ -2,9 +2,11 @@ package edu.cit.montejo.collabmatch.controller;
 
 import edu.cit.montejo.collabmatch.dto.ApiResponse;
 import edu.cit.montejo.collabmatch.dto.CreateJoinRequest;
+import edu.cit.montejo.collabmatch.dto.CreateProjectMessageRequest;
 import edu.cit.montejo.collabmatch.dto.CreateProjectRequest;
 import edu.cit.montejo.collabmatch.dto.JoinRequestResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectDetailResponse;
+import edu.cit.montejo.collabmatch.dto.ProjectMessageResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectResponse;
 import edu.cit.montejo.collabmatch.dto.UpdateProjectRequest;
 import edu.cit.montejo.collabmatch.model.User;
@@ -96,5 +98,25 @@ public class ProjectController {
     ) {
         User currentUser = (User) request.getAttribute("currentUser");
         return ResponseEntity.ok(ApiResponse.success(projectService.listProjectRequests(currentUser, projectId)));
+    }
+
+    @GetMapping("/{projectId}/messages")
+    public ResponseEntity<ApiResponse<List<ProjectMessageResponse>>> listProjectMessages(
+            HttpServletRequest request,
+            @PathVariable Long projectId
+    ) {
+        User currentUser = (User) request.getAttribute("currentUser");
+        return ResponseEntity.ok(ApiResponse.success(projectService.listProjectMessages(currentUser, projectId)));
+    }
+
+    @PostMapping("/{projectId}/messages")
+    public ResponseEntity<ApiResponse<ProjectMessageResponse>> createProjectMessage(
+            HttpServletRequest request,
+            @PathVariable Long projectId,
+            @Valid @RequestBody CreateProjectMessageRequest createProjectMessageRequest
+    ) {
+        User currentUser = (User) request.getAttribute("currentUser");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(projectService.createProjectMessage(currentUser, projectId, createProjectMessageRequest)));
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
 
@@ -28,7 +28,7 @@ function LoginPage() {
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-page min-h-screen bg-ink px-6 py-10 text-slate-100 antialiased">
       <section className="card">
         <h1>Login to CollabMatch</h1>
         <p>Find teammates for creative, academic, and event-based projects.</p>

@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface JoinRequestRepository extends JpaRepository<JoinRequest, Long> {
     boolean existsByProjectIdAndRequesterId(Long projectId, Long requesterId);
 
+    boolean existsByProjectIdAndRequesterIdAndStatus(Long projectId, Long requesterId, String status);
+
     @Query("select jr from JoinRequest jr join fetch jr.project p join fetch p.owner join fetch jr.requester where jr.id = :requestId")
     Optional<JoinRequest> findByIdWithProjectAndRequester(@Param("requestId") Long requestId);
 

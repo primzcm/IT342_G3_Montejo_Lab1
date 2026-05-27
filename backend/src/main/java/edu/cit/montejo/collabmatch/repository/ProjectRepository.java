@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
-    @Query("select p from Project p join fetch p.owner order by p.createdAt desc")
+    @Query("select distinct p from Project p join fetch p.owner left join fetch p.requiredSkills order by p.createdAt desc")
     List<Project> findAllForExplorer();
 
-    @Query("select p from Project p join fetch p.owner where p.id = :projectId")
+    @Query("select distinct p from Project p join fetch p.owner left join fetch p.requiredSkills where p.id = :projectId")
     Optional<Project> findByIdWithOwner(@Param("projectId") Long projectId);
 }

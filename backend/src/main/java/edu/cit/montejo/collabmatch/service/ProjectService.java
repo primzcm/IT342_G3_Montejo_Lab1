@@ -1,10 +1,12 @@
 package edu.cit.montejo.collabmatch.service;
 
 import edu.cit.montejo.collabmatch.dto.CreateJoinRequest;
+import edu.cit.montejo.collabmatch.dto.CreateProjectMessageRequest;
 import edu.cit.montejo.collabmatch.dto.CreateProjectRequest;
 import edu.cit.montejo.collabmatch.dto.JoinRequestResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectDetailResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectMemberResponse;
+import edu.cit.montejo.collabmatch.dto.ProjectMessageResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectResponse;
 import edu.cit.montejo.collabmatch.dto.UpdateProjectRequest;
 import edu.cit.montejo.collabmatch.exception.ConflictException;
@@ -13,9 +15,12 @@ import edu.cit.montejo.collabmatch.exception.NotFoundException;
 import edu.cit.montejo.collabmatch.model.JoinRequest;
 import edu.cit.montejo.collabmatch.model.Project;
 import edu.cit.montejo.collabmatch.model.ProjectMember;
+import edu.cit.montejo.collabmatch.model.ProjectMessage;
+import edu.cit.montejo.collabmatch.model.ProjectSkill;
 import edu.cit.montejo.collabmatch.model.User;
 import edu.cit.montejo.collabmatch.repository.JoinRequestRepository;
 import edu.cit.montejo.collabmatch.repository.ProjectMemberRepository;
+import edu.cit.montejo.collabmatch.repository.ProjectMessageRepository;
 import edu.cit.montejo.collabmatch.repository.ProjectRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +35,18 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final JoinRequestRepository joinRequestRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectMessageRepository projectMessageRepository;
 
     public ProjectService(
             ProjectRepository projectRepository,
             JoinRequestRepository joinRequestRepository,
-            ProjectMemberRepository projectMemberRepository
+            ProjectMemberRepository projectMemberRepository,
+            ProjectMessageRepository projectMessageRepository
     ) {
         this.projectRepository = projectRepository;
         this.joinRequestRepository = joinRequestRepository;
         this.projectMemberRepository = projectMemberRepository;
+        this.projectMessageRepository = projectMessageRepository;
     }
 
     @Transactional(readOnly = true)
@@ -64,14 +72,16 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse createProject(User currentUser, CreateProjectRequest request) {
+        List<String> requiredSkills = normalizeSkills(request.getRequiredSkills());
         Project project = new Project(
                 currentUser,
                 request.getTitle().trim(),
                 request.getDescription().trim(),
                 request.getCategory().trim(),
-                request.getRolesNeeded().trim(),
+                String.join(", ", requiredSkills),
                 STATUS_OPEN
         );
+        project.replaceRequiredSkills(requiredSkills);
         projectRepository.save(project);
         return toProjectResponse(project, currentUser);
     }
@@ -79,13 +89,15 @@ public class ProjectService {
     @Transactional
     public ProjectResponse updateProject(User currentUser, Long projectId, UpdateProjectRequest request) {
         Project project = getOwnedProjectOrThrow(currentUser, projectId);
+        List<String> requiredSkills = normalizeSkills(request.getRequiredSkills());
         project.updateDetails(
                 request.getTitle().trim(),
                 request.getDescription().trim(),
                 request.getCategory().trim(),
-                request.getRolesNeeded().trim(),
+                String.join(", ", requiredSkills),
                 request.getStatus().trim()
         );
+        project.replaceRequiredSkills(requiredSkills);
         return toProjectResponse(project, currentUser);
     }
 
@@ -131,6 +143,24 @@ public class ProjectService {
         return joinRequestRepository.findAllByProjectIdWithRequesterOrderByCreatedAtDesc(project.getId()).stream()
                 .map(this::toJoinRequestResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectMessageResponse> listProjectMessages(User currentUser, Long projectId) {
+        Project project = getProjectOrThrow(projectId);
+        ensureProjectBoardAccess(currentUser, project);
+        return projectMessageRepository.findAllByProjectIdWithAuthorOrderByCreatedAtAsc(projectId).stream()
+                .map(this::toProjectMessageResponse)
+                .toList();
+    }
+
+    @Transactional
+    public ProjectMessageResponse createProjectMessage(User currentUser, Long projectId, CreateProjectMessageRequest request) {
+        Project project = getProjectOrThrow(projectId);
+        ensureProjectBoardAccess(currentUser, project);
+        ProjectMessage message = new ProjectMessage(project, currentUser, request.getContent().trim());
+        projectMessageRepository.save(message);
+        return toProjectMessageResponse(message);
     }
 
     @Transactional
@@ -182,10 +212,25 @@ public class ProjectService {
         }
     }
 
+    private void ensureProjectBoardAccess(User currentUser, Project project) {
+        if (currentUser == null) {
+            throw new ForbiddenException("Only project members can access the project board");
+        }
+
+        boolean isOwner = project.getOwner().getId().equals(currentUser.getId());
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserId(project.getId(), currentUser.getId());
+        if (!isOwner && !isMember) {
+            throw new ForbiddenException("Only the project owner and approved members can access the project board");
+        }
+    }
+
     private ProjectDetailResponse toProjectDetailResponse(Project project, User currentUser, List<ProjectMemberResponse> members) {
         boolean isOwner = currentUser != null && project.getOwner().getId().equals(currentUser.getId());
-        boolean joinRequested = currentUser != null && !isOwner
-                && joinRequestRepository.existsByProjectIdAndRequesterId(project.getId(), currentUser.getId());
+        boolean joined = currentUser != null && !isOwner
+                && projectMemberRepository.existsByProjectIdAndUserId(project.getId(), currentUser.getId());
+        boolean joinRequested = currentUser != null && !isOwner && !joined
+                && joinRequestRepository.existsByProjectIdAndRequesterIdAndStatus(project.getId(), currentUser.getId(), STATUS_PENDING);
+        List<String> requiredSkills = extractRequiredSkills(project);
 
         return new ProjectDetailResponse(
                 project.getId(),
@@ -193,11 +238,13 @@ public class ProjectService {
                 project.getDescription(),
                 project.getCategory(),
                 project.getRolesNeeded(),
+                requiredSkills,
                 project.getStatus(),
                 project.getCreatedAt(),
                 project.getOwner().getId(),
                 project.getOwner().getFirstname() + " " + project.getOwner().getLastname(),
                 isOwner,
+                joined,
                 joinRequested,
                 members
         );
@@ -216,10 +263,24 @@ public class ProjectService {
         );
     }
 
+    private ProjectMessageResponse toProjectMessageResponse(ProjectMessage projectMessage) {
+        return new ProjectMessageResponse(
+                projectMessage.getId(),
+                projectMessage.getProject().getId(),
+                projectMessage.getAuthor().getId(),
+                projectMessage.getAuthor().getFirstname() + " " + projectMessage.getAuthor().getLastname(),
+                projectMessage.getContent(),
+                projectMessage.getCreatedAt()
+        );
+    }
+
     private ProjectResponse toProjectResponse(Project project, User currentUser) {
         boolean isOwner = currentUser != null && project.getOwner().getId().equals(currentUser.getId());
-        boolean joinRequested = currentUser != null && !isOwner
-                && joinRequestRepository.existsByProjectIdAndRequesterId(project.getId(), currentUser.getId());
+        boolean joined = currentUser != null && !isOwner
+                && projectMemberRepository.existsByProjectIdAndUserId(project.getId(), currentUser.getId());
+        boolean joinRequested = currentUser != null && !isOwner && !joined
+                && joinRequestRepository.existsByProjectIdAndRequesterIdAndStatus(project.getId(), currentUser.getId(), STATUS_PENDING);
+        List<String> requiredSkills = extractRequiredSkills(project);
 
         return new ProjectResponse(
                 project.getId(),
@@ -227,12 +288,28 @@ public class ProjectService {
                 project.getDescription(),
                 project.getCategory(),
                 project.getRolesNeeded(),
+                requiredSkills,
                 project.getStatus(),
                 project.getCreatedAt(),
                 project.getOwner().getId(),
                 project.getOwner().getFirstname() + " " + project.getOwner().getLastname(),
                 isOwner,
+                joined,
                 joinRequested
         );
+    }
+
+    private List<String> extractRequiredSkills(Project project) {
+        return project.getRequiredSkills().stream()
+                .map(ProjectSkill::getSkillName)
+                .toList();
+    }
+
+    private List<String> normalizeSkills(List<String> skills) {
+        return skills.stream()
+                .map(String::trim)
+                .filter(skill -> !skill.isEmpty())
+                .distinct()
+                .toList();
     }
 }

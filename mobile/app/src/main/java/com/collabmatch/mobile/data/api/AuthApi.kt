@@ -3,14 +3,17 @@ package com.collabmatch.mobile.data.api
 import com.collabmatch.mobile.data.model.ApiResponse
 import com.collabmatch.mobile.data.model.AuthPayload
 import com.collabmatch.mobile.data.model.CreateJoinRequest
+import com.collabmatch.mobile.data.model.CreateProjectMessageRequest
 import com.collabmatch.mobile.data.model.CreateProjectRequest
 import com.collabmatch.mobile.data.model.JoinRequestDto
 import com.collabmatch.mobile.data.model.LoginRequest
 import com.collabmatch.mobile.data.model.LogoutRequest
 import com.collabmatch.mobile.data.model.ProjectDetailDto
+import com.collabmatch.mobile.data.model.ProjectMessageDto
 import com.collabmatch.mobile.data.model.ProjectSummaryDto
 import com.collabmatch.mobile.data.model.RegisterRequest
 import com.collabmatch.mobile.data.model.UpdateProjectRequest
+import com.collabmatch.mobile.data.model.UpdateUserProfileRequest
 import com.collabmatch.mobile.data.model.UserDto
 import retrofit2.http.DELETE
 import retrofit2.Response
@@ -30,6 +33,12 @@ interface AuthApi {
 
     @GET("api/v1/user/me")
     suspend fun me(@Header("Authorization") authorization: String): Response<ApiResponse<UserDto>>
+
+    @PUT("api/v1/user/me")
+    suspend fun updateMe(
+        @Header("Authorization") authorization: String,
+        @Body request: UpdateUserProfileRequest
+    ): Response<ApiResponse<UserDto>>
 
     @POST("api/v1/auth/logout")
     suspend fun logout(
@@ -77,6 +86,19 @@ interface AuthApi {
         @Header("Authorization") authorization: String,
         @Path("projectId") projectId: Long
     ): Response<ApiResponse<List<JoinRequestDto>>>
+
+    @GET("api/v1/projects/{projectId}/messages")
+    suspend fun fetchProjectMessages(
+        @Header("Authorization") authorization: String,
+        @Path("projectId") projectId: Long
+    ): Response<ApiResponse<List<ProjectMessageDto>>>
+
+    @POST("api/v1/projects/{projectId}/messages")
+    suspend fun createProjectMessage(
+        @Header("Authorization") authorization: String,
+        @Path("projectId") projectId: Long,
+        @Body request: CreateProjectMessageRequest
+    ): Response<ApiResponse<ProjectMessageDto>>
 
     @PUT("api/v1/requests/{requestId}/approve")
     suspend fun approveJoinRequest(

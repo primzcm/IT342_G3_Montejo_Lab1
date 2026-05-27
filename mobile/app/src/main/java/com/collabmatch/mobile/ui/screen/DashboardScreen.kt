@@ -1,6 +1,5 @@
 package com.collabmatch.mobile.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,19 +8,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,37 +33,74 @@ import com.collabmatch.mobile.data.model.ProjectSummaryDto
 import com.collabmatch.mobile.data.model.UserDto
 import com.collabmatch.mobile.data.repository.AuthRepository
 import com.collabmatch.mobile.data.repository.RepoResult
+import com.collabmatch.mobile.ui.theme.AppBadge
+import com.collabmatch.mobile.ui.theme.AppCard
+import com.collabmatch.mobile.ui.theme.AppGradientFrame
+import com.collabmatch.mobile.ui.theme.AppMetricCard
+import com.collabmatch.mobile.ui.theme.AppMiniButton
+import com.collabmatch.mobile.ui.theme.AppPrimaryButton
+import com.collabmatch.mobile.ui.theme.AppSecondaryButton
+import com.collabmatch.mobile.ui.theme.AppSectionTabs
+import com.collabmatch.mobile.ui.theme.AppTextField
+import com.collabmatch.mobile.ui.theme.AppTopBar
+import com.collabmatch.mobile.ui.theme.Gold
+import com.collabmatch.mobile.ui.theme.MistMuted
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val SectionAll = "All Projects"
+private const val SectionMine = "My Projects"
+private const val SectionJoined = "Joined Projects"
+private const val SectionApplications = "My Applications"
+
 @Composable
 fun DashboardScreen(
     repository: AuthRepository,
     onLoggedOut: () -> Unit,
+    onOpenProfile: () -> Unit,
     onCreateProject: () -> Unit,
     onOpenProject: (Long) -> Unit
 ) {
+    if (repository.getAccessToken().isNullOrBlank()) {
+        LaunchedEffect(Unit) {
+            onLoggedOut()
+        }
+        return
+    }
+
     val scope = rememberCoroutineScope()
     var user by remember { mutableStateOf<UserDto?>(null) }
     var projects by remember { mutableStateOf<List<ProjectSummaryDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var joiningProjectId by remember { mutableStateOf<Long?>(null) }
+    var activeSection by remember { mutableStateOf(SectionAll) }
+    var selectedCategory by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
 
     suspend fun loadDashboard() {
         loading = true
         error = null
 
-        val currentUserResult = repository.fetchCurrentUser()
-        val projectsResult = repository.fetchProjects()
-
-        when (currentUserResult) {
+        when (val currentUserResult = repository.fetchCurrentUser()) {
             is RepoResult.Success -> user = currentUserResult.data
-            is RepoResult.Error -> error = currentUserResult.message
+            is RepoResult.Error -> {
+                if (repository.isAuthenticationError(currentUserResult.message)) {
+                    onLoggedOut()
+                    return
+                }
+                error = currentUserResult.message
+            }
         }
 
-        when (projectsResult) {
+        when (val projectsResult = repository.fetchProjects()) {
             is RepoResult.Success -> projects = projectsResult.data
-            is RepoResult.Error -> error = projectsResult.message
+            is RepoResult.Error -> {
+                if (repository.isAuthenticationError(projectsResult.message)) {
+                    onLoggedOut()
+                    return
+                }
+                error = projectsResult.message
+            }
         }
 
         loading = false
@@ -78,42 +110,47 @@ fun DashboardScreen(
         loadDashboard()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("CollabMatch") },
-                actions = {
-                    TextButton(onClick = onCreateProject) {
-                        Text("Create")
-                    }
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                repository.logout()
-                                onLoggedOut()
-                            }
-                        }
-                    ) {
-                        Text("Logout")
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateProject) {
-                Text("+")
-            }
-        }
-    ) { innerPadding ->
+    val categories = listOf("All") + projects.map { it.category }.distinct()
+    val filteredProjects = projects.filter { project ->
+        val categoryMatches = selectedCategory == "All" || project.category == selectedCategory
+        val query = searchQuery.trim().lowercase()
+        val searchable = listOf(
+            project.title,
+            project.category,
+            project.description,
+            project.rolesNeeded,
+            project.ownerName,
+            project.requiredSkills.joinToString(" ")
+        ).joinToString(" ").lowercase()
+        val searchMatches = query.isBlank() || searchable.contains(query)
+        categoryMatches && searchMatches
+    }
+    val visibleProjects = when (activeSection) {
+        SectionMine -> filteredProjects.filter { it.owner }
+        SectionJoined -> filteredProjects.filter { it.joined }
+        SectionApplications -> filteredProjects.filter { it.joinRequested }
+        else -> filteredProjects
+    }
+    val openCount = visibleProjects.count { it.status == "OPEN" }
+    val requestCount = projects.count { it.joinRequested }
+    val joinedCount = projects.count { it.joined }
+    val sectionDescription = when (activeSection) {
+        SectionMine -> "Projects you own."
+        SectionJoined -> "Projects you already joined."
+        SectionApplications -> "Requests you already sent."
+        else -> "Browse current collaboration posts."
+    }
+
+    AppGradientFrame {
         when {
             loading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .systemBarsPadding(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Gold)
                 }
             }
 
@@ -121,86 +158,171 @@ fun DashboardScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .systemBarsPadding(),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     item {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Welcome back",
-                                    style = MaterialTheme.typography.labelLarge
+                        AppTopBar(
+                            title = "Project Feed",
+                            badge = activeSection,
+                            meta = "${visibleProjects.size} visible",
+                            actions = {
+                                AppMiniButton(
+                                    text = "Profile",
+                                    onClick = onOpenProfile
                                 )
-                                Text(
-                                    text = user?.let { "${it.firstname} ${it.lastname}" } ?: "CollabMatch member",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Browse collaboration posts, open project details, and manage team requests.",
-                                    style = MaterialTheme.typography.bodyMedium
+                                AppMiniButton(
+                                    text = "Logout",
+                                    onClick = {
+                                        scope.launch {
+                                            repository.logout()
+                                            onLoggedOut()
+                                        }
+                                    }
                                 )
                             }
+                        )
+                    }
+
+                    item {
+                        AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            Text(
+                                text = "Hi, ${user?.firstname ?: "Builder"}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = sectionDescription,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                AppMetricCard(
+                                    label = "Visible",
+                                    value = visibleProjects.size.toString(),
+                                    modifier = Modifier.width(108.dp)
+                                )
+                                AppMetricCard(
+                                    label = "Open",
+                                    value = openCount.toString(),
+                                    modifier = Modifier.width(108.dp)
+                                )
+                                AppMetricCard(
+                                    label = "Requested",
+                                    value = requestCount.toString(),
+                                    modifier = Modifier.width(108.dp)
+                                )
+                                AppMetricCard(
+                                    label = "Joined",
+                                    value = joinedCount.toString(),
+                                    modifier = Modifier.width(108.dp)
+                                )
+                            }
+
+                            AppPrimaryButton(
+                                text = "Post Project",
+                                onClick = onCreateProject,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    item {
+                        AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            Text(
+                                text = "Browse",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            AppSectionTabs(
+                                options = listOf(SectionAll, SectionMine, SectionJoined, SectionApplications),
+                                selected = activeSection,
+                                onSelect = { activeSection = it }
+                            )
+                            AppSectionTabs(
+                                options = categories,
+                                selected = selectedCategory,
+                                onSelect = { selectedCategory = it }
+                            )
+                            AppTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                label = "Search skills or keywords"
+                            )
                         }
                     }
 
                     if (!error.isNullOrBlank()) {
                         item {
-                            Text(
-                                text = error ?: "",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                Text(
+                                    text = error ?: "",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
 
-                    if (projects.isEmpty()) {
+                    if (visibleProjects.isEmpty()) {
                         item {
-                            Card {
-                                Column(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text(
-                                        text = "No projects yet",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = "Create the first collaboration post from mobile.",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    Button(onClick = onCreateProject) {
-                                        Text("Create Project")
-                                    }
-                                }
+                            AppCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                Text(
+                                    text = when {
+                                        searchQuery.isNotBlank() || selectedCategory != "All" -> "No projects match these filters."
+                                        activeSection == SectionMine -> "You have not posted a project yet."
+                                        activeSection == SectionJoined -> "You have not joined a project yet."
+                                        activeSection == SectionApplications -> "You have not applied to a project yet."
+                                        else -> "No projects yet."
+                                    },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                AppPrimaryButton(
+                                    text = if (activeSection == SectionApplications || activeSection == SectionJoined) "Browse Projects" else "Post Project",
+                                    onClick = {
+                                        if (activeSection == SectionApplications || activeSection == SectionJoined) {
+                                            activeSection = SectionAll
+                                        } else {
+                                            onCreateProject()
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     } else {
-                        items(projects, key = { it.id }) { project ->
-                            ProjectSummaryCard(
+                        items(visibleProjects, key = { it.id }) { project ->
+                            MobileProjectCard(
                                 project = project,
-                                onClick = { onOpenProject(project.id) }
-                            )
-                        }
-                    }
+                                joining = joiningProjectId == project.id,
+                                onOpenProject = { onOpenProject(project.id) },
+                                onJoinProject = {
+                                    scope.launch {
+                                        joiningProjectId = project.id
+                                        error = null
+                                        when (val result = repository.requestToJoinProject(project.id)) {
+                                            is RepoResult.Success -> {
+                                                projects = projects.map {
+                                                    if (it.id == project.id) it.copy(joinRequested = true) else it
+                                                }
+                                            }
 
-                    item {
-                        Button(
-                            onClick = {
-                                scope.launch { loadDashboard() }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Refresh Feed")
+                                            is RepoResult.Error -> error = result.message
+                                        }
+                                        joiningProjectId = null
+                                    }
+                                },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
                         }
                     }
                 }
@@ -210,59 +332,86 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ProjectSummaryCard(
+private fun MobileProjectCard(
     project: ProjectSummaryDto,
-    onClick: () -> Unit
+    joining: Boolean,
+    onOpenProject: () -> Unit,
+    onJoinProject: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    AppCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppBadge(project.category)
+            AppBadge(
+                if (project.owner) "Owner" else if (project.joined) "Member" else if (project.joinRequested) "Requested" else project.status
+            )
+        }
+
+        Text(
+            text = project.title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Text(
+            text = project.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = project.ownerName,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = if (project.requiredSkills.isNotEmpty()) {
+                project.requiredSkills.joinToString(" • ")
+            } else {
+                project.rolesNeeded
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MistMuted
+        )
+
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = project.category,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = if (project.owner) "Owner" else project.status,
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-
-            Text(
-                text = project.title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = project.description,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "Owner: ${project.ownerName}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "Roles: ${project.rolesNeeded}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Button(
-                onClick = onClick,
+            AppSecondaryButton(
+                text = "View Details",
+                onClick = onOpenProject,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (project.owner) "Manage Project" else "View Details")
+            )
+            if (project.owner) {
+                AppPrimaryButton(
+                    text = "Manage Project",
+                    onClick = onOpenProject,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else if (project.joined) {
+                AppPrimaryButton(
+                    text = "Open Project",
+                    onClick = onOpenProject,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                AppPrimaryButton(
+                    text = when {
+                        project.joinRequested -> "Requested"
+                        joining -> "Joining..."
+                        else -> "Request to Join"
+                    },
+                    onClick = onJoinProject,
+                    enabled = !project.joinRequested && !joining,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

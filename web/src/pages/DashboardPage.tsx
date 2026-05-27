@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createProject, fetchCurrentUser, fetchProjects, logoutUser, requestJoinProject } from "../services/api";
-
-const skillOptions = ["React", "Solidity", "Python", "Design", "AI", "Data"];
+import { matchesProjectFilters, parseSkills } from "../utils/projectSkills";
 
 function createInitialForm() {
   return {
@@ -55,6 +54,12 @@ function getProjectIcons(category) {
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const sections = [
+    { id: "all", label: "All Projects" },
+    { id: "mine", label: "My Projects" },
+    { id: "joined", label: "Joined Projects" },
+    { id: "applications", label: "My Applications" }
+  ];
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [error, setError] = useState("");
@@ -63,8 +68,9 @@ function DashboardPage() {
   const [joiningProjectId, setJoiningProjectId] = useState(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectForm, setProjectForm] = useState(createInitialForm());
+  const [activeSection, setActiveSection] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedSkill, setSelectedSkill] = useState("React");
+  const [skillQuery, setSkillQuery] = useState("");
 
   const accessToken = localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token");
   const refreshToken = localStorage.getItem("collabmatch_refresh_token");
@@ -122,7 +128,10 @@ function DashboardPage() {
     try {
       setSubmittingProject(true);
       setError("");
-      const createdProject = await createProject(accessToken, projectForm);
+      const createdProject = await createProject(accessToken, {
+        ...projectForm,
+        requiredSkills: parseSkills(projectForm.rolesNeeded)
+      });
       setProjects((currentProjects) => [createdProject, ...currentProjects]);
       setProjectForm(createInitialForm());
       setShowProjectForm(false);
@@ -159,15 +168,37 @@ function DashboardPage() {
     navigate(`/projects/${projectId}`);
   }
 
+  function handleOpenProfile() {
+    navigate("/profile");
+  }
+
   const categories = ["All", ...new Set(projects.map((project) => project.category))];
-  const filteredProjects = projects.filter((project) => {
-    const categoryMatches = selectedCategory === "All" || project.category === selectedCategory;
-    const skillMatches =
-      !selectedSkill ||
-      project.rolesNeeded.toLowerCase().includes(selectedSkill.toLowerCase()) ||
-      project.description.toLowerCase().includes(selectedSkill.toLowerCase());
-    return categoryMatches && skillMatches;
-  });
+  const filteredProjects = projects.filter((project) =>
+    matchesProjectFilters(project, selectedCategory, skillQuery)
+  );
+
+  const myProjects = filteredProjects.filter((project) => project.owner);
+  const joinedProjects = filteredProjects.filter((project) => project.joined);
+  const myApplications = filteredProjects.filter((project) => project.joinRequested);
+  const visibleProjects =
+    activeSection === "mine"
+      ? myProjects
+      : activeSection === "joined"
+        ? joinedProjects
+      : activeSection === "applications"
+        ? myApplications
+        : filteredProjects;
+  const activeSectionConfig = sections.find((section) => section.id === activeSection) || sections[0];
+  const hasActiveFilters = selectedCategory !== "All" || skillQuery.trim() !== "";
+  const openProjectCount = visibleProjects.filter((project) => project.status === "OPEN").length;
+  const sectionDescription =
+    activeSection === "mine"
+      ? "Projects you created and can manage directly."
+      : activeSection === "joined"
+        ? "Projects where your request was approved and you are now on the team."
+      : activeSection === "applications"
+        ? "Requests you already sent to other project owners."
+        : "Browse every active collaboration brief in the network.";
 
   if (loading) {
     return <main className="dashboard-page"><section className="card"><p>Loading account...</p></section></main>;
@@ -185,18 +216,26 @@ function DashboardPage() {
   }
 
   return (
-    <main className="dashboard-page dashboard-explorer">
+      <main className="dashboard-page dashboard-explorer min-h-screen bg-ink text-slate-100 antialiased">
       <header className="dashboard-topbar">
-        <div className="dashboard-brand">CollabMatch</div>
-        <nav className="dashboard-topnav">
-          <a href="#projects" className="is-active">All Projects</a>
-          <a href="#applications">My Applications</a>
-          <a href="#saved">Saved</a>
-          <a href="#messages">Messages</a>
-        </nav>
+        <div className="dashboard-topbar-copy">
+          <div>
+            <div className="dashboard-brand">CollabMatch</div>
+          </div>
+          <div className="dashboard-topbar-summary">
+            <span className="dashboard-topbar-pill">{activeSectionConfig.label}</span>
+            <p>
+              {visibleProjects.length} visible
+              <span>•</span>
+              {openProjectCount} open
+            </p>
+          </div>
+        </div>
         <div className="dashboard-top-actions">
-          <button type="button" className="icon-button" aria-label="Notifications">🔔</button>
-          <button type="button" className="icon-button dashboard-avatar" aria-label="Account menu">
+          <button type="button" className="topbar-action-button" onClick={() => setShowProjectForm(true)}>
+            Post Project
+          </button>
+          <button type="button" className="icon-button dashboard-avatar" aria-label="Open profile" onClick={handleOpenProfile}>
             {user.firstname?.[0]}{user.lastname?.[0]}
           </button>
         </div>
@@ -206,26 +245,33 @@ function DashboardPage() {
         <aside className="dashboard-sidebar">
           <div>
             <h1 className="sidebar-title">Project Explorer</h1>
-            <p className="sidebar-subtitle">Find your next catalyst</p>
+            <p className="sidebar-subtitle">Jump between your feed, your posts, and your outgoing applications.</p>
           </div>
 
           <div className="sidebar-nav">
-            <button type="button" className="sidebar-link is-active">
-              <span>▦</span>
-              All Projects
-            </button>
-            <button type="button" className="sidebar-link">
-              <span>☑</span>
-              My Applications
-            </button>
-            <button type="button" className="sidebar-link">
-              <span>🔖</span>
-              Saved
-            </button>
-            <button type="button" className="sidebar-link">
-              <span>🗨</span>
-              Messages
-            </button>
+            {sections.map((section) => {
+              const count =
+                section.id === "mine"
+                  ? projects.filter((project) => project.owner).length
+                  : section.id === "joined"
+                    ? projects.filter((project) => project.joined).length
+                  : section.id === "applications"
+                    ? projects.filter((project) => project.joinRequested).length
+                    : projects.length;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={`sidebar-link ${activeSection === section.id ? "is-active" : ""}`}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <span>{section.id === "all" ? "▦" : section.id === "mine" ? "✎" : section.id === "joined" ? "◉" : "☑"}</span>
+                  {section.label}
+                  <strong className="sidebar-link-count">{count}</strong>
+                </button>
+              );
+            })}
           </div>
 
           <div className="sidebar-divider" />
@@ -245,34 +291,33 @@ function DashboardPage() {
               </select>
             </label>
 
-            <div className="filter-label">
+            <label className="filter-label">
               Skills Required
-              <div className="skill-chips">
-                {skillOptions.map((skill) => (
-                  <button
-                    key={skill}
-                    type="button"
-                    className={`skill-chip ${selectedSkill === skill ? "is-active" : ""}`}
-                    onClick={() => setSelectedSkill(skill)}
-                  >
-                    {skill}
-                  </button>
-                ))}
-              </div>
-            </div>
+              <input
+                type="search"
+                className="filter-input"
+                value={skillQuery}
+                onChange={(event) => setSkillQuery(event.target.value)}
+                placeholder="Search skills, roles, owner, or keywords"
+              />
+            </label>
+
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                className="sidebar-footer-link"
+                onClick={() => {
+                  setSelectedCategory("All");
+                  setSkillQuery("");
+                }}
+              >
+                <span>✕</span>
+                Clear Filters
+              </button>
+            ) : null}
           </section>
 
-          <div className="sidebar-divider" />
-
-          <button type="button" className="sidebar-post-button" onClick={() => setShowProjectForm(true)}>
-            Post a Project
-          </button>
-
           <div className="sidebar-footer-links">
-            <button type="button" className="sidebar-footer-link">
-              <span>⚙</span>
-              Settings
-            </button>
             <button type="button" className="sidebar-footer-link" onClick={handleLogout}>
               <span>↩</span>
               Logout
@@ -284,20 +329,32 @@ function DashboardPage() {
           <section className="dashboard-hero" id="projects">
             <p className="dashboard-overline">Welcome back, {user.firstname}</p>
             <h2>
-              Discover the
-              <span className="dashboard-hero-accent"> Future.</span>
+              {activeSection === "mine"
+                ? "Own the"
+                : activeSection === "joined"
+                  ? "Work with the"
+                  : activeSection === "applications"
+                    ? "Track your"
+                    : "Discover the"}
+              <span className="dashboard-hero-accent">
+                {" "}
+                {activeSection === "mine"
+                  ? "Build."
+                  : activeSection === "joined"
+                    ? "Team."
+                    : activeSection === "applications"
+                      ? "Pipeline."
+                      : "Future."}
+              </span>
             </h2>
-            <p>
-              Curated high-impact collaborations across the global tech landscape.
-              Find teams that catalyze change.
-            </p>
+            <p>{sectionDescription}</p>
           </section>
 
           {error ? <p className="dashboard-inline-error">{error}</p> : null}
 
           <section className="dashboard-card-grid">
-            {filteredProjects.map((project, index) => (
-              <article key={project.title} className="explorer-card">
+            {visibleProjects.map((project, index) => (
+              <article key={project.id} className="explorer-card">
                 <div className={`explorer-logo logo-${getProjectMark(project.category)}`}>
                   <span>{project.category}</span>
                 </div>
@@ -327,11 +384,13 @@ function DashboardPage() {
                   <button
                     type="button"
                     className="explorer-primary-button"
-                    disabled={!project.owner && (project.joinRequested || joiningProjectId === project.id)}
-                    onClick={() => (project.owner ? handleOpenProject(project.id) : handleJoinProject(project.id))}
+                    disabled={!project.owner && !project.joined && (project.joinRequested || joiningProjectId === project.id)}
+                    onClick={() => (project.owner || project.joined ? handleOpenProject(project.id) : handleJoinProject(project.id))}
                   >
                     {project.owner
                       ? "Manage"
+                      : project.joined
+                        ? "Open Team"
                       : project.joinRequested
                         ? "Requested"
                         : joiningProjectId === project.id
@@ -346,12 +405,48 @@ function DashboardPage() {
               </article>
             ))}
 
-            {filteredProjects.length === 0 ? (
+            {visibleProjects.length === 0 ? (
               <article className="explorer-empty-state">
-                <h3>No projects yet</h3>
-                <p>Create the first project post and it will appear here once saved to the database.</p>
-                <button type="button" className="explorer-primary-button" onClick={() => setShowProjectForm(true)}>
-                  Post a Project
+                <h3>
+                  {hasActiveFilters
+                    ? "No projects match these filters"
+                    : activeSection === "mine"
+                      ? "You have not posted any projects yet"
+                      : activeSection === "joined"
+                        ? "You have not joined any projects yet"
+                      : activeSection === "applications"
+                        ? "You have not applied to any projects yet"
+                        : "No projects yet"}
+                </h3>
+                <p>
+                  {hasActiveFilters
+                    ? "Clear the active category or skill filter to see the rest of your project feed."
+                    : activeSection === "mine"
+                      ? "Create a project and it will appear here with owner controls."
+                      : activeSection === "joined"
+                        ? "Once an owner approves your request, the project will appear here."
+                      : activeSection === "applications"
+                        ? "Join a project from the main feed and it will show up here."
+                        : "Create the first project post and it will appear here once saved to the database."}
+                </p>
+                <button
+                  type="button"
+                  className="explorer-primary-button"
+                  onClick={() => {
+                    if (hasActiveFilters) {
+                      setSelectedCategory("All");
+                      setSkillQuery("");
+                      return;
+                    }
+                    if (activeSection === "applications" || activeSection === "joined") {
+                      setActiveSection("all");
+                      return;
+                    }
+                    setActiveSection("all");
+                    setShowProjectForm(true);
+                  }}
+                >
+                  {hasActiveFilters ? "Clear Filters" : activeSection === "applications" || activeSection === "joined" ? "Browse Projects" : "Post a Project"}
                 </button>
               </article>
             ) : null}
@@ -407,7 +502,7 @@ function DashboardPage() {
                 <textarea
                   value={projectForm.description}
                   onChange={(event) => setProjectForm({ ...projectForm, description: event.target.value })}
-                  rows="5"
+                  rows={5}
                   required
                 />
               </label>

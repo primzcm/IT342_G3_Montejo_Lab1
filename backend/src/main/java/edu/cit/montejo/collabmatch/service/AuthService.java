@@ -36,7 +36,7 @@ public class AuthService {
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.passwordEncoder = new BCryptPasswordEncoder(12);
         this.jwtService = jwtService;
         this.refreshTokenTtlSeconds = refreshTokenTtlSeconds;
     }
@@ -98,11 +98,14 @@ public class AuthService {
     public UserResponse toUserResponse(User user) {
         return new UserResponse(
                 user.getId(),
+                user.getUsername(),
                 user.getEmail(),
                 user.getFirstname(),
                 user.getLastname(),
                 user.getRole(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.getBio(),
+                user.getSkills()
         );
     }
 

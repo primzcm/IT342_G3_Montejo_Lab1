@@ -5,5 +5,6 @@ data class UpdateProjectRequest(
     val description: String,
     val category: String,
     val rolesNeeded: String,
+    val requiredSkills: List<String>,
     val status: String
 )

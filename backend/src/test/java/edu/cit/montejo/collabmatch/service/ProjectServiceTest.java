@@ -1,17 +1,23 @@
 package edu.cit.montejo.collabmatch.service;
 
 import edu.cit.montejo.collabmatch.dto.CreateJoinRequest;
+import edu.cit.montejo.collabmatch.dto.CreateProjectMessageRequest;
+import edu.cit.montejo.collabmatch.dto.CreateProjectRequest;
 import edu.cit.montejo.collabmatch.dto.JoinRequestResponse;
 import edu.cit.montejo.collabmatch.dto.ProjectDetailResponse;
+import edu.cit.montejo.collabmatch.dto.ProjectMessageResponse;
+import edu.cit.montejo.collabmatch.dto.ProjectResponse;
 import edu.cit.montejo.collabmatch.dto.UpdateProjectRequest;
 import edu.cit.montejo.collabmatch.exception.ConflictException;
 import edu.cit.montejo.collabmatch.exception.ForbiddenException;
 import edu.cit.montejo.collabmatch.model.JoinRequest;
 import edu.cit.montejo.collabmatch.model.Project;
 import edu.cit.montejo.collabmatch.model.ProjectMember;
+import edu.cit.montejo.collabmatch.model.ProjectMessage;
 import edu.cit.montejo.collabmatch.model.User;
 import edu.cit.montejo.collabmatch.repository.JoinRequestRepository;
 import edu.cit.montejo.collabmatch.repository.ProjectMemberRepository;
+import edu.cit.montejo.collabmatch.repository.ProjectMessageRepository;
 import edu.cit.montejo.collabmatch.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,6 +52,9 @@ class ProjectServiceTest {
 
     @Mock
     private ProjectMemberRepository projectMemberRepository;
+
+    @Mock
+    private ProjectMessageRepository projectMessageRepository;
 
     @InjectMocks
     private ProjectService projectService;
@@ -73,7 +83,7 @@ class ProjectServiceTest {
 
         when(projectRepository.findByIdWithOwner(10L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.findAllByProjectIdWithUserOrderByJoinedAtAsc(10L)).thenReturn(List.of(member));
-        when(joinRequestRepository.existsByProjectIdAndRequesterId(10L, 2L)).thenReturn(false);
+        when(projectMemberRepository.existsByProjectIdAndUserId(10L, 2L)).thenReturn(true);
 
         ProjectDetailResponse response = projectService.getProject(requester, 10L);
 
@@ -81,6 +91,33 @@ class ProjectServiceTest {
         assertEquals(1, response.getMembers().size());
         assertEquals("Requester User", response.getMembers().get(0).getName());
         assertFalse(response.isOwner());
+        assertTrue(response.isJoined());
+        assertFalse(response.isJoinRequested());
+    }
+
+    @Test
+    void createProjectPersistsStructuredSkills() {
+        CreateProjectRequest request = new CreateProjectRequest();
+        request.setTitle("Skills-first build");
+        request.setDescription("Structured skills should be saved");
+        request.setCategory("AI");
+        request.setRolesNeeded("Ignored legacy field");
+        request.setRequiredSkills(List.of("Kotlin", " Room ", "Kotlin", "Supabase"));
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectResponse response = projectService.createProject(owner, request);
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(projectCaptor.capture());
+
+        Project savedProject = projectCaptor.getValue();
+        assertEquals(List.of("Kotlin", "Room", "Supabase"), response.getRequiredSkills());
+        assertEquals("Kotlin, Room, Supabase", savedProject.getRolesNeeded());
+        assertEquals(3, savedProject.getRequiredSkills().size());
+        assertEquals("Kotlin", savedProject.getRequiredSkills().get(0).getSkillName());
+        assertEquals("Room", savedProject.getRequiredSkills().get(1).getSkillName());
+        assertEquals("Supabase", savedProject.getRequiredSkills().get(2).getSkillName());
     }
 
     @Test
@@ -138,5 +175,32 @@ class ProjectServiceTest {
         request.setMessage("I can help");
 
         assertThrows(ConflictException.class, () -> projectService.requestToJoin(requester, 10L, request));
+    }
+
+    @Test
+    void createProjectMessageAllowsApprovedMembers() {
+        CreateProjectMessageRequest request = new CreateProjectMessageRequest();
+        request.setContent("Excited to help with the API layer.");
+
+        when(projectRepository.findByIdWithOwner(10L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProjectIdAndUserId(10L, 2L)).thenReturn(true);
+        when(projectMessageRepository.save(any(ProjectMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectMessageResponse response = projectService.createProjectMessage(requester, 10L, request);
+
+        ArgumentCaptor<ProjectMessage> messageCaptor = ArgumentCaptor.forClass(ProjectMessage.class);
+        verify(projectMessageRepository).save(messageCaptor.capture());
+        assertEquals(project, messageCaptor.getValue().getProject());
+        assertEquals(requester, messageCaptor.getValue().getAuthor());
+        assertEquals("Excited to help with the API layer.", response.getContent());
+        assertEquals("Requester User", response.getAuthorName());
+    }
+
+    @Test
+    void listProjectMessagesRejectsNonMembers() {
+        when(projectRepository.findByIdWithOwner(10L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProjectIdAndUserId(10L, 2L)).thenReturn(false);
+
+        assertThrows(ForbiddenException.class, () -> projectService.listProjectMessages(requester, 10L));
     }
 }

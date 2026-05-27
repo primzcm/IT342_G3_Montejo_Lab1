@@ -38,6 +38,12 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(columnDefinition = "TEXT")
+    private String skills;
+
     protected User() {}
 
     public User(String username, String email, String firstname, String lastname, String role, String passwordHash, Instant createdAt) {
@@ -80,5 +86,20 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public String getSkills() {
+        return skills;
+    }
+
+    public void updateProfile(String firstname, String lastname, String bio, String skills) {
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.bio = bio;
+        this.skills = skills;
     }
 }

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.collabmatch.mobile.data.api.ApiModule
+import com.collabmatch.mobile.data.local.AppDatabase
 import com.collabmatch.mobile.data.repository.AuthRepository
 import com.collabmatch.mobile.data.repository.SessionManager
 import com.collabmatch.mobile.ui.navigation.CollabMatchApp
@@ -15,7 +16,8 @@ class MainActivity : ComponentActivity() {
 
         val repository = AuthRepository(
             authApi = ApiModule.authApi,
-            sessionManager = SessionManager(this)
+            sessionManager = SessionManager(this),
+            appDatabase = AppDatabase.getInstance(this)
         )
 
         setContent {

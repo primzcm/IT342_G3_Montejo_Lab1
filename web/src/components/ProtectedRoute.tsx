@@ -1,6 +1,7 @@
+import React, { type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
   const token = localStorage.getItem("collabmatch_access_token") || localStorage.getItem("collabmatch_token");
 

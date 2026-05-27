@@ -5,6 +5,7 @@ web/dist/
 mobile/.gradle/
 mobile/build/
 mobile/app/build/
+.gradle-mobile/
 
 # Local environment and secrets
 .env
